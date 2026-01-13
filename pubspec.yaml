@@ -30,6 +30,11 @@ environment:
 dependencies:
 
   get: ^4.6.5
+  flutter_map: ^6.1.0
+  flutter_osm_plugin: ^1.4.3
+  google_fonts: ^6.1.0
+  provider: ^6.1.1
+  shimmer: ^3.0.0
   flutter:
     sdk: flutter
 
