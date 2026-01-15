@@ -216,14 +216,24 @@ class Booking {
 class User {
   final String id;
   final String username;
+  final String email;
   final String bio;
   final String avatarUrl;
+  final List<String> favoriteClubs;
+  final List<String> friends;
+  final List<String> bookingIds;
+  final Map<String, dynamic> settings;
 
   User({
     required this.id,
     required this.username,
+    required this.email,
     required this.bio,
     required this.avatarUrl,
+    this.favoriteClubs = const [],
+    this.friends = const [],
+    this.bookingIds = const [],
+    this.settings = const {},
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
@@ -244,9 +254,27 @@ class User {
     return User(
       id: id,
       username: json['username'] ?? '',
+      email: json['email'] ?? '',
       bio: json['bio'] ?? '',
       avatarUrl: json['avatarUrl'] ?? '',
+      favoriteClubs: (json['favoriteClubs'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      friends: (json['friends'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      bookingIds: (json['bookingIds'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      settings: json['settings'] as Map<String, dynamic>? ?? {},
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'username': username,
+      'email': email,
+      'bio': bio,
+      'avatarUrl': avatarUrl,
+      'favoriteClubs': favoriteClubs,
+      'friends': friends,
+      'bookingIds': bookingIds,
+      'settings': settings,
+    };
   }
 }
 

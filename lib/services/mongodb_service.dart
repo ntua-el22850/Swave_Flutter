@@ -54,4 +54,28 @@ class MongoDBService {
   static Future<void> createBooking(Map<String, dynamic> booking) async {
     await bookingsCollection!.insert(booking);
   }
+
+  static Future<void> updateUser(String userId, Map<String, dynamic> data) async {
+    await usersCollection!.update(
+      where.id(ObjectId.fromHexString(userId)),
+      modify.set('favoriteClubs', data['favoriteClubs'])
+            .set('friends', data['friends'])
+            .set('bookingIds', data['bookingIds'])
+            .set('settings', data['settings'])
+            .set('bio', data['bio'])
+            .set('avatarUrl', data['avatarUrl']),
+    );
+  }
+
+  static Future<List<Map<String, dynamic>>> getClubsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final objectIds = ids.map((id) => ObjectId.fromHexString(id)).toList();
+    return await clubsCollection!.find(where.oneFrom('_id', objectIds)).toList();
+  }
+
+  static Future<List<Map<String, dynamic>>> getUsersByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final objectIds = ids.map((id) => ObjectId.fromHexString(id)).toList();
+    return await usersCollection!.find(where.oneFrom('_id', objectIds)).toList();
+  }
 }

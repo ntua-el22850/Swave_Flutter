@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../models/models.dart';
 import '../../routes/app_routes.dart';
 import '../../services/mock_data_service.dart';
+import '../../services/auth_service.dart';
 import '../../utils/theme.dart';
 
 class ClubDetailScreen extends StatefulWidget {
@@ -172,8 +173,18 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.favorite_border, color: Colors.white),
-          onPressed: () {},
+          icon: Icon(
+            AuthService.isFavorite(currentClub.id)
+                ? Icons.favorite
+                : Icons.favorite_border,
+            color: AuthService.isFavorite(currentClub.id)
+                ? Colors.red
+                : Colors.white,
+          ),
+          onPressed: () async {
+            await AuthService.toggleFavorite(currentClub.id);
+            setState(() {});
+          },
         ),
         IconButton(
           icon: const Icon(Icons.share, color: Colors.white),

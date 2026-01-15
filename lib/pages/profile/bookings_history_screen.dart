@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../utils/theme.dart';
+import '../../services/auth_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../models/models.dart';
 import '../../widgets/state_widgets.dart';
@@ -11,12 +12,13 @@ class BookingsHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mockService = MockDataService();
+    final userBookingIds = (AuthService.currentUser?['bookingIds'] as List?)?.map((e) => e.toString()).toList() ?? [];
 
     return Scaffold(
       backgroundColor: AppTheme.darkBackground,
       body: FutureBuilder<List<dynamic>>(
         future: Future.wait([
-          mockService.getBookings(),
+          mockService.getBookings(), // This currently gets all, but we might want to filter or fetch specific ones
           mockService.getClubs(),
         ]),
         builder: (context, snapshot) {
@@ -27,8 +29,11 @@ class BookingsHistoryScreen extends StatelessWidget {
             return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
           }
 
-          final bookings = snapshot.data![0] as List<Booking>;
+          final allBookings = snapshot.data![0] as List<Booking>;
           final clubs = snapshot.data![1] as List<Club>;
+          
+          // Filter bookings to only show those belonging to the user
+          final bookings = allBookings.where((b) => userBookingIds.contains(b.id)).toList();
 
           return Column(
             children: [

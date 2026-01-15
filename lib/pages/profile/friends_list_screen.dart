@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../utils/theme.dart';
-import '../../services/mock_data_service.dart';
+import '../../services/auth_service.dart';
+import '../../services/mongodb_service.dart';
 import '../../models/models.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/state_widgets.dart';
@@ -11,17 +12,18 @@ class FriendsListScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mockService = MockDataService();
+    final userFriendIds = (AuthService.currentUser?['friends'] as List?)?.map((e) => e.toString()).toList() ?? [];
 
     return Scaffold(
       backgroundColor: AppTheme.darkBackground,
-      body: FutureBuilder<List<User>>(
-        future: mockService.getFriends(),
+      body: FutureBuilder<List<Map<String, dynamic>>>(
+        future: MongoDBService.getUsersByIds(userFriendIds),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple));
           }
-          final friends = snapshot.data ?? [];
+          final friendsJson = snapshot.data ?? [];
+          final friends = friendsJson.map((json) => User.fromJson(json)).toList();
 
           return Column(
             children: [

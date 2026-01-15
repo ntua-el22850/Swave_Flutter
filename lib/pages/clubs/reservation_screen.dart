@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../models/models.dart';
 import '../../utils/theme.dart';
 import '../../services/mongodb_service.dart';
+import '../../services/auth_service.dart';
 
 class ReservationScreen extends StatefulWidget {
   const ReservationScreen({super.key});
@@ -444,6 +445,12 @@ class _ReservationScreenState extends State<ReservationScreen> {
       };
 
       await MongoDBService.createBooking(booking);
+      // After creating the booking, we need to get its ID and add it to the user.
+      // Since insert() in mongo_dart updates the map with _id, we can get it.
+      if (booking.containsKey('_id')) {
+        final bookingId = booking['_id'].toString().replaceAll('ObjectId("', '').replaceAll('")', '');
+        await AuthService.addBooking(bookingId);
+      }
 
       Get.snackbar(
         'Success',

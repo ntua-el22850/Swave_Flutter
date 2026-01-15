@@ -5,6 +5,7 @@ import '../../services/mock_data_service.dart';
 import '../../models/models.dart';
 import '../../routes/app_routes.dart';
 import '../../services/auth_service.dart';
+import '../../services/mongodb_service.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -12,6 +13,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mockService = MockDataService();
+    final userFavoritesIds = (AuthService.currentUser?['favoriteClubs'] as List?)?.map((e) => e.toString()).toList() ?? [];
 
     return Scaffold(
       backgroundColor: AppTheme.darkBackground,
@@ -20,6 +22,7 @@ class ProfileScreen extends StatelessWidget {
           future: Future.wait([
             mockService.getClubs(),
             mockService.getVisitedClubs(),
+            MongoDBService.getClubsByIds(userFavoritesIds),
           ]),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
@@ -29,10 +32,12 @@ class ProfileScreen extends StatelessWidget {
               return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
             }
 
-            final clubs = snapshot.data![0] as List<Club>;
+            final allClubs = snapshot.data![0] as List<Club>;
             final visitedClubs = snapshot.data![1] as List<Club>;
-            final favorites = clubs.take(3).toList();
-            final recommended = clubs.reversed.take(4).toList();
+            final favoriteClubsJson = snapshot.data![2] as List<Map<String, dynamic>>;
+            final favorites = favoriteClubsJson.map((json) => Club.fromJson(json)).toList();
+            
+            final recommended = allClubs.where((c) => !userFavoritesIds.contains(c.id)).take(4).toList();
 
             return SingleChildScrollView(
               child: Padding(

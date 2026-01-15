@@ -34,10 +34,10 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
       if (userId != null) {
         user = friends.firstWhere(
               (u) => u.id == userId,
-              orElse: () => friends.isNotEmpty ? friends.first : User(id: '', username: 'User', bio: '', avatarUrl: ''),
+              orElse: () => friends.isNotEmpty ? friends.first : User(id: '', username: 'User', email: '', bio: '', avatarUrl: ''),
             );
       } else {
-        user = friends.isNotEmpty ? friends.first : User(id: '', username: 'User', bio: '', avatarUrl: '');
+        user = friends.isNotEmpty ? friends.first : User(id: '', username: 'User', email: '', bio: '', avatarUrl: '');
       }
       setState(() => _isLoading = false);
     }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../utils/theme.dart';
+import '../../services/auth_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -10,19 +11,28 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  // Mock states for settings
-  final Map<String, bool> _toggles = {
-    'Notifications': true,
-    'Location Services': true,
-    'Dark Mode': true,
-    'Sound Effects': false,
-    'Marketing Emails': false,
-  };
+  late Map<String, dynamic> _settings;
 
-  final Map<String, double> _sliders = {
-    'Volume': 0.7,
-    'Brightness': 0.8,
-  };
+  @override
+  void initState() {
+    super.initState();
+    _settings = Map<String, dynamic>.from(AuthService.currentUser?['settings'] ?? {
+      'notifications': true,
+      'locationServices': true,
+      'darkMode': true,
+      'soundEffects': false,
+      'marketingEmails': false,
+      'volume': 0.7,
+      'brightness': 0.8,
+    });
+  }
+
+  Future<void> _updateSetting(String key, dynamic value) async {
+    setState(() {
+      _settings[key] = value;
+    });
+    await AuthService.updateSettings(_settings);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,19 +45,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: ListView(
               padding: const EdgeInsets.symmetric(vertical: 10),
               children: [
-                _buildToggleItem('Notifications'),
+                _buildToggleItem('Notifications', 'notifications'),
                 _buildDivider(),
-                _buildToggleItem('Location Services'),
+                _buildToggleItem('Location Services', 'locationServices'),
                 _buildDivider(),
-                _buildToggleItem('Dark Mode'),
+                _buildToggleItem('Dark Mode', 'darkMode'),
                 _buildDivider(),
-                _buildSliderItem('Volume'),
+                _buildSliderItem('Volume', 'volume'),
                 _buildDivider(),
-                _buildSliderItem('Brightness'),
+                _buildSliderItem('Brightness', 'brightness'),
                 _buildDivider(),
-                _buildToggleItem('Sound Effects'),
+                _buildToggleItem('Sound Effects', 'soundEffects'),
                 _buildDivider(),
-                _buildToggleItem('Marketing Emails'),
+                _buildToggleItem('Marketing Emails', 'marketingEmails'),
                 const SizedBox(height: 20),
               ],
             ),
@@ -103,14 +113,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildToggleItem(String name) {
+  Widget _buildToggleItem(String label, String key) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            name,
+            label,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16,
@@ -118,12 +128,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           Switch(
-            value: _toggles[name] ?? false,
-            onChanged: (value) {
-              setState(() {
-                _toggles[name] = value;
-              });
-            },
+            value: _settings[key] ?? false,
+            onChanged: (value) => _updateSetting(key, value),
             activeColor: Colors.white,
             activeTrackColor: AppTheme.primaryPurple,
             inactiveThumbColor: Colors.white70,
@@ -134,14 +140,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSliderItem(String name) {
+  Widget _buildSliderItem(String label, String key) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            name,
+            label,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16,
@@ -157,12 +163,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               overlayColor: AppTheme.primaryPurple.withOpacity(0.2),
             ),
             child: Slider(
-              value: _sliders[name] ?? 0.5,
-              onChanged: (value) {
-                setState(() {
-                  _sliders[name] = value;
-                });
-              },
+              value: (_settings[key] as num?)?.toDouble() ?? 0.5,
+              onChanged: (value) => _updateSetting(key, value),
             ),
           ),
         ],
