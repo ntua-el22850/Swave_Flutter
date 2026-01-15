@@ -22,6 +22,24 @@ class Club {
     required this.description,
     this.reviews = const [],
   });
+
+  factory Club.fromJson(Map<String, dynamic> json) {
+    return Club(
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      name: json['name'] ?? '',
+      rating: (json['rating'] ?? 0.0).toDouble(),
+      category: json['category'] ?? '',
+      location: json['location'] ?? '',
+      distance: json['distance'] ?? '',
+      openUntil: json['openUntil'] ?? '',
+      imageUrl: json['imageUrl'] ?? '',
+      description: json['description'] ?? '',
+      reviews: (json['reviews'] as List?)
+              ?.map((r) => Review.fromJson(r))
+              .toList() ??
+          [],
+    );
+  }
 }
 
 class Review {
@@ -40,6 +58,17 @@ class Review {
     required this.date,
     required this.text,
   });
+
+  factory Review.fromJson(Map<String, dynamic> json) {
+    return Review(
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      userName: json['userName'] ?? '',
+      userInitial: json['userInitial'] ?? '',
+      rating: (json['rating'] ?? 0.0).toDouble(),
+      date: json['date'] ?? '',
+      text: json['text'] ?? '',
+    );
+  }
 }
 
 class Event {
@@ -62,6 +91,19 @@ class Event {
     required this.attendees,
     required this.imageUrl,
   });
+
+  factory Event.fromJson(Map<String, dynamic> json) {
+    return Event(
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      name: json['name'] ?? '',
+      clubName: json['clubName'] ?? '',
+      date: json['date'] ?? '',
+      price: (json['price'] ?? 0.0).toDouble(),
+      category: json['category'] ?? '',
+      attendees: json['attendees'] ?? 0,
+      imageUrl: json['imageUrl'] ?? '',
+    );
+  }
 }
 
 class Booking {
@@ -82,6 +124,18 @@ class Booking {
     required this.tableNumber,
     required this.totalPrice,
   });
+
+  factory Booking.fromJson(Map<String, dynamic> json) {
+    return Booking(
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      clubName: json['clubName'] ?? '',
+      date: json['date'] ?? '',
+      time: json['time'] ?? '',
+      guests: json['guests'] ?? 0,
+      tableNumber: json['tableNumber'] ?? 0,
+      totalPrice: (json['totalPrice'] ?? 0.0).toDouble(),
+    );
+  }
 }
 
 class User {
@@ -96,6 +150,15 @@ class User {
     required this.bio,
     required this.avatarUrl,
   });
+
+  factory User.fromJson(Map<String, dynamic> json) {
+    return User(
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      username: json['username'] ?? '',
+      bio: json['bio'] ?? '',
+      avatarUrl: json['avatarUrl'] ?? '',
+    );
+  }
 }
 
 class Promotion {
@@ -112,4 +175,20 @@ class Promotion {
     required this.imageUrl,
     this.isNew = false,
   });
+
+  factory Promotion.fromJson(Map<String, dynamic> json) {
+    return Promotion(
+      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      title: json['title'] ?? '',
+      description: json['description'] ?? '',
+      imageUrl: json['imageUrl'] ?? '',
+      isNew: json['isNew'] ?? false,
+    );
+  }
+}
+
+enum SearchType {
+  all,
+  clubs,
+  events,
 }

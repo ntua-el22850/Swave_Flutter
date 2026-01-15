@@ -4,6 +4,7 @@ import '../../utils/theme.dart';
 import '../../services/mock_data_service.dart';
 import '../../models/models.dart';
 import '../../routes/app_routes.dart';
+import '../../services/auth_service.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -11,55 +12,72 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mockService = MockDataService();
-    final clubs = mockService.getClubs();
-    final visitedClubs = mockService.getVisitedClubs();
-    final favorites = clubs.take(3).toList(); // Simulating favorites
-    final recommended = clubs.reversed.take(4).toList(); // Simulating recommended
 
     return Scaffold(
       backgroundColor: AppTheme.darkBackground,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 20),
-                _buildHeader(),
-                const SizedBox(height: 30),
-                _buildActionGrid(),
-                const SizedBox(height: 30),
-                _buildHorizontalSection('Favorites', favorites),
-                const SizedBox(height: 30),
-                _buildHorizontalSection('Recently Visited', visitedClubs),
-                const SizedBox(height: 30),
-                _buildHorizontalSection('Clubs You Might Like', recommended),
-                const SizedBox(height: 30),
-              ],
-            ),
-          ),
+        child: FutureBuilder<List<dynamic>>(
+          future: Future.wait([
+            mockService.getClubs(),
+            mockService.getVisitedClubs(),
+          ]),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple));
+            }
+            if (snapshot.hasError) {
+              return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
+            }
+
+            final clubs = snapshot.data![0] as List<Club>;
+            final visitedClubs = snapshot.data![1] as List<Club>;
+            final favorites = clubs.take(3).toList();
+            final recommended = clubs.reversed.take(4).toList();
+
+            return SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
+                    _buildHeader(),
+                    const SizedBox(height: 30),
+                    _buildActionGrid(),
+                    const SizedBox(height: 30),
+                    _buildHorizontalSection('Favorites', favorites),
+                    const SizedBox(height: 30),
+                    _buildHorizontalSection('Recently Visited', visitedClubs),
+                    const SizedBox(height: 30),
+                    _buildHorizontalSection('Clubs You Might Like', recommended),
+                    const SizedBox(height: 30),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
   Widget _buildHeader() {
+    final username = AuthService.currentUser?['username'] ?? 'User';
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
+          children: [
             Text(
-              'Hello, Chris',
-              style: TextStyle(
+              'Hello, $username',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Text(
+            const Text(
               'Ready for tonight?',
               style: TextStyle(
                 color: Colors.white54,
@@ -68,26 +86,12 @@ class ProfileScreen extends StatelessWidget {
             ),
           ],
         ),
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF24243E),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 24),
-            ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF24243E),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(Icons.person_outline, color: Colors.white, size: 24),
-            ),
-          ],
+        IconButton(
+          icon: const Icon(Icons.logout, color: Colors.white54),
+          onPressed: () {
+            AuthService.logout();
+            Get.offAllNamed(AppRoutes.login);
+          },
         ),
       ],
     );
@@ -102,7 +106,12 @@ class ProfileScreen extends StatelessWidget {
       mainAxisSpacing: 15,
       childAspectRatio: 2.5,
       children: [
-        _buildActionButton('Your Account', Icons.person_outline, () {}),
+        _buildActionButton('Your Account', Icons.person_outline, () async {
+          final currentUserData = AuthService.currentUser;
+          if (currentUserData != null) {
+            Get.toNamed(AppRoutes.userDetail, arguments: User.fromJson(currentUserData));
+          }
+        }),
         _buildActionButton('Friends', Icons.people_outline, () {
           Get.toNamed(AppRoutes.friendsList);
         }),
@@ -144,6 +153,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildHorizontalSection(String title, List<Club> clubs) {
+    if (clubs.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [

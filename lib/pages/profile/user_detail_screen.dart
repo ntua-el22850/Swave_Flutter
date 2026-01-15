@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../utils/theme.dart';
 import '../../services/mock_data_service.dart';
 import '../../models/models.dart';
+import '../../services/auth_service.dart';
 
 class UserDetailScreen extends StatefulWidget {
   const UserDetailScreen({super.key});
@@ -12,7 +13,7 @@ class UserDetailScreen extends StatefulWidget {
 }
 
 class _UserDetailScreenState extends State<UserDetailScreen> {
-  late User user;
+  User? user;
   bool isBioExpanded = false;
   bool _isLoading = true;
   final MockDataService _mockService = MockDataService();
@@ -23,37 +24,36 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
     _loadUser();
   }
 
-  void _loadUser() {
+  Future<void> _loadUser() async {
     if (Get.arguments is User) {
       user = Get.arguments as User;
       setState(() => _isLoading = false);
     } else {
       final String? userId = Get.parameters['userId'];
+      final List<User> friends = await _mockService.getFriends();
       if (userId != null) {
-        final foundUser = _mockService.getFriends().firstWhere(
+        user = friends.firstWhere(
               (u) => u.id == userId,
-              orElse: () => _mockService.getFriends().first,
+              orElse: () => friends.isNotEmpty ? friends.first : User(id: '', username: 'User', bio: '', avatarUrl: ''),
             );
-        user = foundUser;
-        setState(() => _isLoading = false);
       } else {
-        user = _mockService.getFriends().first;
-        setState(() => _isLoading = false);
+        user = friends.isNotEmpty ? friends.first : User(id: '', username: 'User', bio: '', avatarUrl: '');
       }
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    if (_isLoading || user == null) {
       return const Scaffold(
         backgroundColor: AppTheme.darkBackground,
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple)),
       );
     }
-    
-    final friendsInCommon = _mockService.getFriends().where((f) => f.id != user.id).toList();
-    final events = _mockService.getEvents().take(3).toList();
+
+    final isMe = AuthService.currentUser != null && 
+                 (user!.username == AuthService.currentUser!['username']);
 
     return Scaffold(
       backgroundColor: AppTheme.darkBackground,
@@ -65,31 +65,50 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           onPressed: () => Get.back(),
         ),
         title: Text(
-          user.username,
+          isMe ? 'Your Profile' : user!.username,
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 10),
-            _buildUserCard(),
-            const SizedBox(height: 20),
-            _buildAddFriendButton(),
-            const SizedBox(height: 30),
-            _buildSectionHeader('Friends in common'),
-            const SizedBox(height: 15),
-            _buildFriendsInCommonList(friendsInCommon),
-            const SizedBox(height: 30),
-            _buildSectionHeader('This user is going to'),
-            const SizedBox(height: 15),
-            _buildEventsGoingToList(events),
-            const SizedBox(height: 30),
-          ],
-        ),
+      body: FutureBuilder<List<dynamic>>(
+        future: Future.wait([
+          _mockService.getFriends(),
+          _mockService.getEvents(),
+        ]),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple));
+          }
+          final allFriends = snapshot.data![0] as List<User>;
+          final allEvents = snapshot.data![1] as List<Event>;
+
+          final friendsInCommon = allFriends.where((f) => f.id != user!.id).toList();
+          final events = allEvents.take(3).toList();
+
+          return SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const SizedBox(height: 10),
+                _buildUserCard(),
+                if (!isMe) ...[
+                  const SizedBox(height: 20),
+                  _buildAddFriendButton(),
+                ],
+                const SizedBox(height: 30),
+                _buildSectionHeader('Friends in common'),
+                const SizedBox(height: 15),
+                _buildFriendsInCommonList(friendsInCommon),
+                const SizedBox(height: 30),
+                _buildSectionHeader('This user is going to'),
+                const SizedBox(height: 15),
+                _buildEventsGoingToList(events),
+                const SizedBox(height: 30),
+              ],
+            ),
+          );
+        }
       ),
     );
   }
@@ -105,11 +124,11 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
         children: [
           CircleAvatar(
             radius: 50,
-            backgroundImage: NetworkImage(user.avatarUrl),
+            backgroundImage: NetworkImage(user!.avatarUrl),
           ),
           const SizedBox(height: 15),
           Text(
-            user.username,
+            user!.username,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 22,
@@ -120,7 +139,7 @@ class _UserDetailScreenState extends State<UserDetailScreen> {
           GestureDetector(
             onTap: () => setState(() => isBioExpanded = !isBioExpanded),
             child: Text(
-              user.bio,
+              user!.bio,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 color: Colors.white70,

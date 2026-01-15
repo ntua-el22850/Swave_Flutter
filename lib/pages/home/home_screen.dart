@@ -4,6 +4,9 @@ import '../../services/navigation_controller.dart';
 import '../../utils/theme.dart';
 import '../../services/mock_data_service.dart';
 import '../../routes/app_routes.dart';
+import '../../widgets/custom_search_bar.dart';
+import '../../widgets/inline_search_results.dart';
+import '../../models/models.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,52 +17,102 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final mockData = MockDataService();
-  late List clubs;
-  late List promos;
   final PageController _pageController = PageController();
   int _currentPage = 0;
   int _visibleNearYouCount = 3;
 
-  @override
-  void initState() {
-    super.initState();
-    clubs = mockData.getClubs();
-    promos = mockData.getPromotions();
-  }
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void dispose() {
     _pageController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  void _loadMoreNearYou() {
-    setState(() {
-      _visibleNearYouCount += 3;
-      if (_visibleNearYouCount > clubs.length) {
-        _visibleNearYouCount = clubs.length;
-      }
-    });
+  void _clearSearch() {
+    if (_searchQuery.isNotEmpty || _searchController.text.isNotEmpty) {
+      setState(() {
+        _searchQuery = '';
+        _searchController.clear();
+        FocusScope.of(context).unfocus();
+      });
+    } else {
+      FocusScope.of(context).unfocus();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.darkBackground,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onTap: _clearSearch,
+      behavior: HitTestBehavior.opaque,
+      child: Scaffold(
+        backgroundColor: AppTheme.darkBackground,
+        body: SafeArea(
+          child: Stack(
             children: [
-              _buildHeader(),
-              _buildSearchBar(),
-              const SizedBox(height: 10),
-              _buildPromotionsSection(promos),
-              const SizedBox(height: 24),
-              _buildPreviouslyVisitedSection(clubs.take(3).toList()),
-              const SizedBox(height: 24),
-              _buildNearYouSection(),
-              const SizedBox(height: 32),
+              FutureBuilder<List<dynamic>>(
+                future: Future.wait([
+                  mockData.getClubs(),
+                  mockData.getPromotions(),
+                ]),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple));
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
+                  }
+
+                  final clubs = snapshot.data![0] as List<Club>;
+                  final promos = snapshot.data![1] as List<Promotion>;
+
+                  return NotificationListener<ScrollNotification>(
+                    onNotification: (notification) {
+                      if (notification is ScrollStartNotification &&
+                          notification.dragDetails != null) {
+                        _clearSearch();
+                      }
+                      return false;
+                    },
+                    child: SingleChildScrollView(
+                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(),
+                          _buildSearchBar(),
+                          const SizedBox(height: 10),
+                          _buildPromotionsSection(promos),
+                          const SizedBox(height: 24),
+                          _buildPreviouslyVisitedSection(clubs.take(3).toList()),
+                          const SizedBox(height: 24),
+                          _buildNearYouSection(clubs),
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+              if (_searchQuery.isNotEmpty)
+                Positioned(
+                  top: 130, // Adjust based on header and search bar height
+                  left: 0,
+                  right: 0,
+                  child: FutureBuilder<List<String>>(
+                    future: mockData.getAllCategories(),
+                    builder: (context, snapshot) {
+                      return InlineSearchResults(
+                        query: _searchQuery,
+                        searchType: SearchType.all,
+                        initialCategories: snapshot.data ?? [],
+                      );
+                    },
+                  ),
+                ),
             ],
           ),
         ),
@@ -73,11 +126,11 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Center(
         child: Column(
           children: [
-            Row(
+            const Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.waves, color: AppTheme.primaryPurple, size: 32),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text(
                   'SWAVE',
                   style: TextStyle(
@@ -89,7 +142,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ],
             ),
-            Text(
+            const Text(
               'nightclub bookings • events',
               style: TextStyle(
                 color: Colors.white54,
@@ -106,33 +159,25 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildSearchBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10),
-      child: Container(
-        height: 48,
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: const TextField(
-          style: TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            hintText: 'Search for clubs, events...',
-            hintStyle: TextStyle(color: Colors.white54),
-            prefixIcon: Icon(Icons.search, color: Colors.white70),
-            suffixIcon: Icon(Icons.tune, color: Colors.white70),
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.symmetric(vertical: 12),
-          ),
-        ),
+      child: CustomSearchBar(
+        controller: _searchController,
+        hintText: 'Search for clubs, events...',
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
       ),
     );
   }
 
-  Widget _buildPromotionsSection(List promos) {
+  Widget _buildPromotionsSection(List<Promotion> promos) {
+    if (promos.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 20.0, vertical: 12),
           child: Text(
             'Promotions!',
             style: TextStyle(
@@ -181,7 +226,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   color: Colors.orange,
                                   borderRadius: BorderRadius.circular(10),
                                 ),
-                                child: Text(
+                                child: const Text(
                                   'NEW',
                                   style: TextStyle(
                                     color: Colors.white,
@@ -201,7 +246,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     color: Colors.white.withOpacity(0.2),
                                     shape: BoxShape.circle,
                                   ),
-                                  child: Icon(
+                                  child: const Icon(
                                     Icons.percent,
                                     color: Colors.white,
                                     size: 36,
@@ -215,7 +260,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     children: [
                                       Text(
                                         promo.title,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white,
                                           fontSize: 20,
                                           fontWeight: FontWeight.w800,
@@ -224,7 +269,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                       const SizedBox(height: 4),
                                       Text(
                                         promo.description,
-                                        style: TextStyle(
+                                        style: const TextStyle(
                                           color: Colors.white70,
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
@@ -243,7 +288,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 },
               ),
             ),
-            // Carousel Navigation Buttons
             Positioned(
               left: 30,
               child: _buildCarouselArrow(
@@ -317,7 +361,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPreviouslyVisitedSection(List clubs) {
+  Widget _buildPreviouslyVisitedSection(List<Club> clubs) {
+    if (clubs.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -326,7 +371,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
+              const Text(
                 'Previously Visited',
                 style: TextStyle(
                   color: Colors.white,
@@ -336,7 +381,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               IconButton(
                 onPressed: () => Get.toNamed(AppRoutes.bookingsHistory),
-                icon: Icon(Icons.arrow_forward, color: Colors.white70, size: 20),
+                icon: const Icon(Icons.arrow_forward, color: Colors.white70, size: 20),
               ),
             ],
           ),
@@ -357,14 +402,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   margin: const EdgeInsets.only(right: 16),
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Color(0xFF24243E),
+                    color: const Color(0xFF24243E),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(color: Colors.white.withOpacity(0.05)),
-                    boxShadow: [
+                    boxShadow: const [
                       BoxShadow(
                         color: Colors.black26,
                         blurRadius: 8,
-                        offset: const Offset(0, 4),
+                        offset: Offset(0, 4),
                       ),
                     ],
                   ),
@@ -389,7 +434,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 12),
                       Text(
                         club.name,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.w800,
                           fontSize: 15,
@@ -400,11 +445,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.star, color: Colors.orange, size: 14),
+                          const Icon(Icons.star, color: Colors.orange, size: 14),
                           const SizedBox(width: 4),
                           Text(
                             '${club.rating}',
-                            style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                            style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
                           ),
                           const Spacer(),
                           Container(
@@ -415,7 +460,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             child: Text(
                               club.category,
-                              style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],
@@ -431,7 +476,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildNearYouSection() {
+  Widget _buildNearYouSection(List<Club> clubs) {
     final clubsToShow = clubs.take(_visibleNearYouCount).toList();
 
     return Column(
@@ -445,10 +490,10 @@ class _HomeScreenState extends State<HomeScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
+                  const Row(
                     children: [
                       Icon(Icons.location_on, color: AppTheme.primaryPurple, size: 22),
-                      const SizedBox(width: 6),
+                      SizedBox(width: 6),
                       Text(
                         'Near You',
                         style: TextStyle(
@@ -461,16 +506,15 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   IconButton(
                     onPressed: () {
-                      // Navigate to Clubs tab and set map view via controller
                       Get.find<NavigationController>().goToClubsMap();
                     },
-                    icon: Icon(Icons.arrow_forward, color: Colors.white70, size: 20),
+                    icon: const Icon(Icons.arrow_forward, color: Colors.white70, size: 20),
                   ),
                 ],
               ),
               const SizedBox(height: 2),
-              Padding(
-                padding: const EdgeInsets.only(left: 28.0),
+              const Padding(
+                padding: EdgeInsets.only(left: 28.0),
                 child: Text(
                   'Downtown District',
                   style: TextStyle(
@@ -497,7 +541,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Color(0xFF24243E),
+                  color: const Color(0xFF24243E),
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(color: Colors.white.withOpacity(0.05)),
                 ),
@@ -524,7 +568,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           Text(
                             club.name,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 17,
@@ -533,27 +577,27 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 6),
                           Row(
                             children: [
-                              Icon(Icons.star, color: Colors.orange, size: 16),
+                              const Icon(Icons.star, color: Colors.orange, size: 16),
                               const SizedBox(width: 4),
                               Text(
                                 '${club.rating}',
-                                style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(width: 12),
-                              Icon(Icons.directions_walk, color: Colors.white54, size: 14),
+                              const Icon(Icons.directions_walk, color: Colors.white54, size: 14),
                               Text(
                                 ' ${club.distance}',
-                                style: TextStyle(color: Colors.white54, fontSize: 13),
+                                style: const TextStyle(color: Colors.white54, fontSize: 13),
                               ),
                             ],
                           ),
                           const SizedBox(height: 6),
                           Row(
                             children: [
-                              Icon(Icons.access_time, color: AppTheme.primaryPurple, size: 14),
+                              const Icon(Icons.access_time, color: AppTheme.primaryPurple, size: 14),
                               const SizedBox(width: 4),
                               Text(
-                                'Open until 4:00 AM',
+                                'Open until ${club.openUntil}',
                                 style: TextStyle(
                                   color: AppTheme.primaryPurple.withOpacity(0.9),
                                   fontSize: 12,
@@ -577,14 +621,18 @@ class _HomeScreenState extends State<HomeScreen> {
             child: SizedBox(
               width: double.infinity,
               child: TextButton(
-                onPressed: _loadMoreNearYou,
+                onPressed: () {
+                  setState(() {
+                    _visibleNearYouCount += 3;
+                  });
+                },
                 style: TextButton.styleFrom(
                   backgroundColor: Colors.white.withOpacity(0.05),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
+                child: const Text(
                   'Load More',
                   style: TextStyle(color: AppTheme.primaryPurple, fontWeight: FontWeight.bold),
                 ),

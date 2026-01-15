@@ -110,7 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
-            '{${name}}',
+            name,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16,
@@ -141,7 +141,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '{${name}}',
+            name,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 16,

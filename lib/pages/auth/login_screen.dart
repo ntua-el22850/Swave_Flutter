@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../utils/theme.dart';
 import '../../routes/app_routes.dart';
 import '../../services/auth_middleware.dart';
+import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -145,10 +146,22 @@ class _LoginScreenState extends State<LoginScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    AuthMiddleware.isAuthenticated = true;
-                    Get.offAllNamed(AppRoutes.main);
-                  },
+              onPressed: () async {
+                final success = await AuthService.login(
+                  _usernameController.text,
+                  _passwordController.text,
+                );
+                if (success) {
+                  Get.offAllNamed(AppRoutes.main);
+                } else {
+                  Get.snackbar(
+                    'Login Failed',
+                    'Invalid username or password',
+                    backgroundColor: Colors.red.withOpacity(0.5),
+                    colorText: Colors.white,
+                  );
+                }
+              },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryPurple,
                     shape: RoundedRectangleBorder(

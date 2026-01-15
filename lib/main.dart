@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:get/get.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'services/mongodb_service.dart';
 import 'services/navigation_controller.dart';
 import 'utils/theme.dart';
 import 'services/mock_data_service.dart';
@@ -10,13 +12,18 @@ import 'pages/main_navigation_screen.dart';
 import 'pages/auth/login_screen.dart';
 import 'pages/auth/signup_screen.dart';
 import 'pages/clubs/club_detail_screen.dart';
+import 'pages/events/event_detail_screen.dart';
 import 'pages/clubs/reservation_screen.dart';
 import 'pages/profile/bookings_history_screen.dart';
 import 'pages/profile/friends_list_screen.dart';
 import 'pages/profile/user_detail_screen.dart';
 import 'pages/profile/settings_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
+  await MongoDBService.connect();
+
   Get.put(NavigationController());
   runApp(
     MultiProvider(
@@ -75,7 +82,7 @@ class MyApp extends StatelessWidget {
         ),
         GetPage(
           name: AppRoutes.eventDetail,
-          page: () => const ClubDetailScreen(), // Reusing for now or replace if event detail exists
+          page: () => const EventDetailScreen(),
           fullscreenDialog: true,
           transition: Transition.cupertinoDialog,
         ),

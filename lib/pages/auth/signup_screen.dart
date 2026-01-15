@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/theme.dart';
 import '../../routes/app_routes.dart';
+import '../../services/auth_service.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -110,7 +111,24 @@ class _SignupScreenState extends State<SignupScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () => Get.offAllNamed(AppRoutes.main),
+                  onPressed: () async {
+                    if (_passwordController.text != _repeatPasswordController.text) {
+                      Get.snackbar('Error', 'Passwords do not match',
+                          backgroundColor: Colors.red.withOpacity(0.5), colorText: Colors.white);
+                      return;
+                    }
+                    final success = await AuthService.signup(
+                      _usernameController.text,
+                      _emailController.text,
+                      _passwordController.text,
+                    );
+                    if (success) {
+                      Get.offAllNamed(AppRoutes.main);
+                    } else {
+                      Get.snackbar('Error', 'Username already exists',
+                          backgroundColor: Colors.red.withOpacity(0.5), colorText: Colors.white);
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppTheme.primaryPurple,
                     shape: RoundedRectangleBorder(

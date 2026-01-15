@@ -4,7 +4,6 @@ import '../../utils/theme.dart';
 import '../../services/mock_data_service.dart';
 import '../../models/models.dart';
 import '../../routes/app_routes.dart';
-
 import '../../widgets/state_widgets.dart';
 
 class FriendsListScreen extends StatelessWidget {
@@ -13,36 +12,45 @@ class FriendsListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mockService = MockDataService();
-    final friends = mockService.getFriends();
 
     return Scaffold(
       backgroundColor: AppTheme.darkBackground,
-      body: Column(
-        children: [
-          _buildGradientHeader(),
-          Expanded(
-            child: friends.isEmpty
-                ? const EmptyStateWidget(
-                    title: 'No friends yet',
-                    message: 'Start connecting with people to see them here!',
-                    icon: Icons.people_outline,
-                  )
-                : RefreshIndicator(
-                    onRefresh: () async {
-                      await Future.delayed(const Duration(seconds: 1));
-                    },
-                    color: AppTheme.primaryPurple,
-                    child: ListView.builder(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      itemCount: friends.length,
-                      itemBuilder: (context, index) {
-                        return _buildFriendRow(friends[index]);
-                      },
-                    ),
-                  ),
-          ),
-        ],
+      body: FutureBuilder<List<User>>(
+        future: mockService.getFriends(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple));
+          }
+          final friends = snapshot.data ?? [];
+
+          return Column(
+            children: [
+              _buildGradientHeader(),
+              Expanded(
+                child: friends.isEmpty
+                    ? const EmptyStateWidget(
+                        title: 'No friends yet',
+                        message: 'Start connecting with people to see them here!',
+                        icon: Icons.people_outline,
+                      )
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                           (context as Element).markNeedsBuild();
+                        },
+                        color: AppTheme.primaryPurple,
+                        child: ListView.builder(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          itemCount: friends.length,
+                          itemBuilder: (context, index) {
+                            return _buildFriendRow(friends[index]);
+                          },
+                        ),
+                      ),
+              ),
+            ],
+          );
+        }
       ),
       bottomNavigationBar: _buildBottomNav(),
     );

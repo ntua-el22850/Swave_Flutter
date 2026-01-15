@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../models/models.dart';
 import '../../utils/theme.dart';
+import '../../services/mongodb_service.dart';
 
 class ReservationScreen extends StatefulWidget {
   const ReservationScreen({super.key});
@@ -431,21 +432,36 @@ class _ReservationScreenState extends State<ReservationScreen> {
     );
   }
 
-  void _confirmReservation() {
-    Get.snackbar(
-      'Success',
-      selectedTable == null
-          ? 'Reservation confirmed! A table will be assigned upon arrival.'
-          : 'Reservation confirmed for $selectedTable!',
-      snackPosition: SnackPosition.BOTTOM,
-      backgroundColor: AppTheme.primaryPurple,
-      colorText: Colors.white,
-      icon: const Icon(Icons.check_circle_outline, color: Colors.white),
-      duration: const Duration(seconds: 3),
-      margin: const EdgeInsets.all(16),
-      borderRadius: 12,
-      isDismissible: true,
-      forwardAnimationCurve: Curves.easeOutBack,
-    );
+  void _confirmReservation() async {
+    try {
+      final Map<String, dynamic> booking = {
+        'clubName': club.name,
+        'date': 'Friday, Nov 15, 2025',
+        'time': '9:00 PM',
+        'guests': 4,
+        'tableNumber': int.tryParse(selectedTable?.substring(1) ?? '0') ?? 0,
+        'totalPrice': basePrice,
+      };
+
+      await MongoDBService.createBooking(booking);
+
+      Get.snackbar(
+        'Success',
+        selectedTable == null
+            ? 'Reservation confirmed! A table will be assigned upon arrival.'
+            : 'Reservation confirmed for $selectedTable!',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppTheme.primaryPurple,
+        colorText: Colors.white,
+        icon: const Icon(Icons.check_circle_outline, color: Colors.white),
+        duration: const Duration(seconds: 3),
+        margin: const EdgeInsets.all(16),
+        borderRadius: 12,
+        isDismissible: true,
+        forwardAnimationCurve: Curves.easeOutBack,
+      );
+    } catch (e) {
+       Get.snackbar('Error', 'Failed to create reservation');
+    }
   }
 }

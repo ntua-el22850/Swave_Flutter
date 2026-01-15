@@ -7,6 +7,8 @@ import '../../utils/theme.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/state_widgets.dart';
 import '../../services/navigation_controller.dart';
+import '../../widgets/custom_search_bar.dart';
+import '../../widgets/inline_search_results.dart';
 
 class ClubsScreen extends StatefulWidget {
   const ClubsScreen({super.key});
@@ -20,10 +22,11 @@ class _ClubsScreenState extends State<ClubsScreen> {
   String _selectedCategory = 'All';
   final List<String> _categories = ['All', 'Electronic', 'Hip Hop', 'House'];
   final MockDataService _mockDataService = MockDataService();
-  bool _isSatellite = false;
-  bool _isLoading = false;
   final NavigationController navCtrl = Get.find<NavigationController>();
   int _visibleNearYouCount = 3;
+
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   late MapController _mapController;
 
@@ -36,25 +39,25 @@ class _ClubsScreenState extends State<ClubsScreen> {
         unFollowUser: false,
       ),
     );
-    _loadData();
   }
 
   @override
   void dispose() {
     _mapController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1)); // Mock loading delay
-    if (mounted) {
-      setState(() => _isLoading = false);
+  void _clearSearch() {
+    if (_searchQuery.isNotEmpty || _searchController.text.isNotEmpty) {
+      setState(() {
+        _searchQuery = '';
+        _searchController.clear();
+        FocusScope.of(context).unfocus();
+      });
+    } else {
+      FocusScope.of(context).unfocus();
     }
-  }
-
-  Future<void> _onRefresh() async {
-    await _loadData();
   }
 
   @override
@@ -62,19 +65,71 @@ class _ClubsScreenState extends State<ClubsScreen> {
     return Obx(() {
       if (navCtrl.isClubMapView) {
         _isMapView = true;
-        // Reset the flag immediately so user can still toggle manually
         Future.microtask(() => navCtrl.resetClubMapView());
       }
 
-      return Scaffold(
-        body: SafeArea(
-          child: Column(
-            children: [
-              _buildTopBar(),
-              Expanded(
-                child: _isMapView ? _buildMapView() : _buildListView(),
-              ),
-            ],
+      return GestureDetector(
+        onTap: _clearSearch,
+        behavior: HitTestBehavior.opaque,
+        child: Scaffold(
+          body: SafeArea(
+            child: FutureBuilder<List<dynamic>>(
+              future: Future.wait([
+                _mockDataService.getClubs(),
+                _mockDataService.getPromotions(),
+              ]),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple));
+                }
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
+                }
+
+                final clubs = snapshot.data![0] as List<Club>;
+                final promos = snapshot.data![1] as List<Promotion>;
+
+                return Stack(
+                  children: [
+                    Column(
+                      children: [
+                        _buildTopBar(),
+                        Expanded(
+                          child: _isMapView ? _buildMapView(clubs, promos) : _buildListView(clubs, promos),
+                        ),
+                      ],
+                    ),
+                    if (_searchQuery.isNotEmpty)
+                      Positioned(
+                        top: 80,
+                        left: 0,
+                        right: 0,
+                        child: FutureBuilder<List<String>>(
+                          future: _mockDataService.getAllClubCategories(),
+                          builder: (context, catSnapshot) {
+                            return InlineSearchResults(
+                              query: _searchQuery,
+                              searchType: SearchType.clubs,
+                              initialCategories: catSnapshot.data ?? [],
+                            );
+                          },
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ),
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+          floatingActionButton: FloatingActionButton.extended(
+            onPressed: () {
+              setState(() {
+                _isMapView = !_isMapView;
+              });
+            },
+            backgroundColor: AppTheme.primaryPurple,
+            icon: Icon(_isMapView ? Icons.list : Icons.map),
+            label: Text(_isMapView ? 'List View' : 'Map View'),
           ),
         ),
       );
@@ -84,99 +139,50 @@ class _ClubsScreenState extends State<ClubsScreen> {
   Widget _buildTopBar() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: 48,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'Hinted search text',
-                  prefixIcon: const Icon(Icons.search, color: Colors.white70),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isMapView ? Icons.format_list_bulleted : Icons.map_outlined,
-                      color: Colors.white70,
-                    ),
-                    onPressed: () => setState(() => _isMapView = !_isMapView),
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-              ),
-            ),
-          ),
-        ],
+      child: CustomSearchBar(
+        controller: _searchController,
+        hintText: 'Search for clubs...',
+        onChanged: (value) {
+          setState(() {
+            _searchQuery = value;
+          });
+        },
       ),
     );
   }
 
-  Widget _buildListView() {
-    if (_isLoading) {
-      return _buildShimmerLoading();
-    }
-
+  Widget _buildListView(List<Club> clubs, List<Promotion> promos) {
     return RefreshIndicator(
-      onRefresh: _onRefresh,
+      onRefresh: () async {
+        setState(() {});
+      },
       color: AppTheme.primaryPurple,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildCategoryFilters(),
-            _buildPromotionsCarousel(),
-            _buildByCategorySection(),
-            _buildNearYouSection(),
-          ],
+      child: NotificationListener<ScrollNotification>(
+        onNotification: (notification) {
+          if (notification is ScrollStartNotification &&
+              notification.dragDetails != null) {
+            _clearSearch();
+          }
+          return false;
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildCategoryFilters(),
+              _buildPromotionsCarousel(promos),
+              _buildByCategorySection(clubs),
+              _buildNearYouSection(clubs),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildShimmerLoading() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: List.generate(
-              4,
-              (index) => Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ShimmerPlaceholder(width: 80, height: 32, borderRadius: 20),
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          const ShimmerPlaceholder(width: 150, height: 24),
-          const SizedBox(height: 16),
-          const ShimmerPlaceholder(width: double.infinity, height: 160),
-          const SizedBox(height: 32),
-          const ShimmerPlaceholder(width: 200, height: 24),
-          const SizedBox(height: 16),
-          Row(
-            children: List.generate(
-              3,
-              (index) => const Padding(
-                padding: EdgeInsets.only(right: 16),
-                child: ShimmerPlaceholder(width: 140, height: 180),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMapView() {
-    final clubs = _mockDataService.getClubs();
-
+  Widget _buildMapView(List<Club> clubs, List<Promotion> promos) {
     return Stack(
       children: [
         OSMFlutter(
@@ -194,60 +200,58 @@ class _ClubsScreenState extends State<ClubsScreen> {
             ),
             userLocationMarker: UserLocationMaker(
               personMarker: const MarkerIcon(
-                icon: Icon(
+                iconWidget: Icon(
                   Icons.person_pin_circle,
                   color: Colors.blue,
                   size: 48,
                 ),
               ),
               directionArrowMarker: const MarkerIcon(
-                icon: Icon(
+                iconWidget: Icon(
                   Icons.navigation,
                   color: Colors.blue,
                   size: 48,
                 ),
               ),
             ),
-            staticPoints: [
-              StaticPositionGeoPoint(
-                "clubs",
-                MarkerIcon(
-                  icon: Icon(
-                    Icons.location_on,
-                    color: AppTheme.primaryPurple,
-                    size: 48,
-                  ),
-                ),
-                clubs.map((c) => GeoPoint(latitude: 51.5 + (clubs.indexOf(c) * 0.01), longitude: -0.12 + (clubs.indexOf(c) * 0.01))).toList(),
-              ),
-            ],
           ),
           onMapIsReady: (isReady) async {
             if (isReady) {
-              // In a real app, we'd add markers here with specific icons/stickers
-              // For this implementation, we'll use the staticPoints above
+              for (int i = 0; i < clubs.length; i++) {
+                await _mapController.addMarker(
+                  GeoPoint(
+                    latitude: 51.5 + (i * 0.01),
+                    longitude: -0.12 + (i * 0.01),
+                  ),
+                  markerIcon: MarkerIcon(
+                    iconWidget: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (i == 0)
+                          _buildAlert(
+                            'Tickets are running out!',
+                            Icons.local_activity,
+                            Colors.orange,
+                          ),
+                        if (i == 1)
+                          _buildAlert(
+                            'Your friends are going',
+                            Icons.people,
+                            AppTheme.primaryPurple,
+                          ),
+                        const Icon(
+                          Icons.location_on,
+                          color: AppTheme.primaryPurple,
+                          size: 40,
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
             }
           },
         ),
-        // Club Markers with stickers
-        ...clubs.map((club) {
-          // This is a simplified way to show stickers near markers in a Stack
-          // In a production app with OSM, you'd use custom markers or overlays
-          int index = clubs.indexOf(club);
-          return Positioned(
-            top: 150 + (index * 50.0),
-            left: 100 + (index * 30.0),
-            child: Column(
-              children: [
-                if (index == 0) _buildAlert('Tickets are running out!', Icons.local_activity, Colors.orange),
-                if (index == 1) _buildAlert('Your friends are going', Icons.people, AppTheme.primaryPurple),
-                Icon(Icons.location_on, color: AppTheme.primaryPurple, size: 40),
-              ],
-            ),
-          );
-        }),
-        
-        // Map Overlays
         Column(
           children: [
             Container(
@@ -261,7 +265,6 @@ class _ClubsScreenState extends State<ClubsScreen> {
               ),
             ),
             const Spacer(),
-            // Bottom sections in Map View
             Container(
               height: 250,
               decoration: const BoxDecoration(
@@ -272,11 +275,11 @@ class _ClubsScreenState extends State<ClubsScreen> {
                 ),
               ),
               child: SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(), // Just a peek
+                physics: const NeverScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    _buildPromotionsCarousel(),
-                    _buildNearYouSection(),
+                    _buildPromotionsCarousel(promos),
+                    _buildNearYouSection(clubs),
                   ],
                 ),
               ),
@@ -285,10 +288,6 @@ class _ClubsScreenState extends State<ClubsScreen> {
         ),
       ],
     );
-  }
-
-  Widget _buildMapPin() {
-    return const Icon(Icons.location_on, color: AppTheme.primaryPurple, size: 40);
   }
 
   Widget _buildCategoryFilters() {
@@ -320,8 +319,8 @@ class _ClubsScreenState extends State<ClubsScreen> {
     );
   }
 
-  Widget _buildPromotionsCarousel() {
-    final promos = _mockDataService.getPromotions();
+  Widget _buildPromotionsCarousel(List<Promotion> promos) {
+    if (promos.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -410,8 +409,8 @@ class _ClubsScreenState extends State<ClubsScreen> {
     );
   }
 
-  Widget _buildByCategorySection() {
-    final clubs = _mockDataService.getClubs().where((c) => 
+  Widget _buildByCategorySection(List<Club> clubs) {
+    final filteredClubs = clubs.where((c) => 
       _selectedCategory == 'All' || c.category == _selectedCategory).toList();
 
     return Column(
@@ -426,14 +425,14 @@ class _ClubsScreenState extends State<ClubsScreen> {
         ),
         SizedBox(
           height: 180,
-              child: clubs.isEmpty
+              child: filteredClubs.isEmpty
                   ? const Center(child: Text('No clubs found in this category', style: TextStyle(color: Colors.white54)))
                   : ListView.builder(
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: clubs.length,
+                      itemCount: filteredClubs.length,
                       itemBuilder: (context, index) {
-                        final club = clubs[index];
+                        final club = filteredClubs[index];
                         return InkWell(
                           onTap: () => Get.toNamed(AppRoutes.clubDetailPath(club.id), arguments: club),
                           borderRadius: BorderRadius.circular(12),
@@ -493,15 +492,8 @@ class _ClubsScreenState extends State<ClubsScreen> {
     );
   }
 
-  void _loadMoreNearYou() {
-    setState(() {
-      _visibleNearYouCount += 3;
-    });
-  }
-
-  Widget _buildNearYouSection() {
-    final allClubs = _mockDataService.getClubs();
-    final clubs = allClubs.take(_visibleNearYouCount).toList();
+  Widget _buildNearYouSection(List<Club> clubs) {
+    final clubsToShow = clubs.take(_visibleNearYouCount).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -517,9 +509,9 @@ class _ClubsScreenState extends State<ClubsScreen> {
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 16),
-          itemCount: clubs.length,
+          itemCount: clubsToShow.length,
           itemBuilder: (context, index) {
-            final club = clubs[index];
+            final club = clubsToShow[index];
             return InkWell(
               onTap: () => Get.toNamed(AppRoutes.clubDetailPath(club.id), arguments: club),
               borderRadius: BorderRadius.circular(12),
@@ -572,7 +564,7 @@ class _ClubsScreenState extends State<ClubsScreen> {
                               style: const TextStyle(color: Colors.white70, fontSize: 12),
                             ),
                             Text(
-                              'Open until 4:00 AM',
+                              'Open until ${club.openUntil}',
                               style: TextStyle(color: AppTheme.primaryPurple.withOpacity(0.8), fontSize: 12),
                             ),
                           ],
@@ -585,20 +577,24 @@ class _ClubsScreenState extends State<ClubsScreen> {
             );
           },
         ),
-        if (_visibleNearYouCount < allClubs.length)
+        if (_visibleNearYouCount < clubs.length)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: SizedBox(
               width: double.infinity,
               child: TextButton(
-                onPressed: _loadMoreNearYou,
+                onPressed: () {
+                  setState(() {
+                    _visibleNearYouCount += 3;
+                  });
+                },
                 style: TextButton.styleFrom(
                   backgroundColor: Colors.white.withOpacity(0.05),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: Text(
+                child: const Text(
                   'Load More',
                   style: TextStyle(color: AppTheme.primaryPurple, fontWeight: FontWeight.bold),
                 ),

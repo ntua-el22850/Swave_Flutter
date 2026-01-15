@@ -13,7 +13,7 @@ class ClubDetailScreen extends StatefulWidget {
 }
 
 class _ClubDetailScreenState extends State<ClubDetailScreen> {
-  late Club club;
+  Club? club;
   bool _isExpanded = false;
   final MockDataService _mockDataService = MockDataService();
   bool _isLoading = true;
@@ -24,7 +24,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
     _loadClub();
   }
 
-  void _loadClub() {
+  Future<void> _loadClub() async {
     // Try to get from arguments first
     if (Get.arguments is Club) {
       club = Get.arguments as Club;
@@ -32,58 +32,61 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
     } else {
       // Otherwise load from ID (Deep Linking)
       final String? id = Get.parameters['id'];
+      final List<Club> allClubs = await _mockDataService.getClubs();
       if (id != null) {
-        final foundClub = _mockDataService.getClubs().firstWhere(
+        club = allClubs.firstWhere(
               (c) => c.id == id,
-              orElse: () => _mockDataService.getClubs().first,
+              orElse: () => allClubs.first,
             );
-        club = foundClub;
-        setState(() => _isLoading = false);
       } else {
-        // Fallback
-        club = _mockDataService.getClubs().first;
-        setState(() => _isLoading = false);
+        club = allClubs.isNotEmpty ? allClubs.first : null;
       }
+      setState(() => _isLoading = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
+    if (_isLoading || club == null) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
+        body: Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple)),
       );
     }
-    final List<Event> upcomingEvents = _mockDataService.getEventsByClub(club.name);
 
     return Scaffold(
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          _buildSliverAppBar(),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildClubHeader(),
-                  const SizedBox(height: 24),
-                  _buildDescription(),
-                  const SizedBox(height: 32),
-                  _buildReserveButton(),
-                  const SizedBox(height: 32),
-                  if (upcomingEvents.isNotEmpty) ...[
-                    _buildUpcomingEvents(upcomingEvents),
-                    const SizedBox(height: 32),
-                  ],
-                  _buildReviewsSection(),
-                  const SizedBox(height: 100), // Bottom padding for content
-                ],
+      body: FutureBuilder<List<Event>>(
+        future: _mockDataService.getEventsByClub(club!.name),
+        builder: (context, snapshot) {
+          final upcomingEvents = snapshot.data ?? [];
+          return CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              _buildSliverAppBar(),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildClubHeader(),
+                      const SizedBox(height: 24),
+                      _buildDescription(),
+                      const SizedBox(height: 32),
+                      _buildReserveButton(),
+                      const SizedBox(height: 32),
+                      if (upcomingEvents.isNotEmpty) ...[
+                        _buildUpcomingEvents(upcomingEvents),
+                        const SizedBox(height: 32),
+                      ],
+                      _buildReviewsSection(),
+                      const SizedBox(height: 100),
+                    ],
+                  ),
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        }
       ),
     );
   }
@@ -103,7 +106,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
           fit: StackFit.expand,
           children: [
             Image.network(
-              club.imageUrl,
+              club!.imageUrl,
               fit: BoxFit.cover,
             ),
             const DecoratedBox(
@@ -159,7 +162,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          club.name,
+          club!.name,
           style: const TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
@@ -172,7 +175,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
             const Icon(Icons.star, color: Colors.amber, size: 20),
             const SizedBox(width: 4),
             Text(
-              club.rating.toString(),
+              club!.rating.toString(),
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -188,7 +191,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                 border: Border.all(color: AppTheme.primaryPurple, width: 1),
               ),
               child: Text(
-                club.category,
+                club!.category,
                 style: const TextStyle(
                   color: AppTheme.primaryPurple,
                   fontSize: 12,
@@ -207,7 +210,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          club.description,
+          club!.description,
           maxLines: _isExpanded ? null : 3,
           overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
           style: const TextStyle(
@@ -377,13 +380,13 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        if (club.reviews.isEmpty)
+        if (club!.reviews.isEmpty)
           const Text(
             'No reviews yet.',
             style: TextStyle(color: Colors.white54),
           )
         else
-          ...club.reviews.map((review) => _buildReviewItem(review)),
+          ...club!.reviews.map((review) => _buildReviewItem(review)),
       ],
     );
   }

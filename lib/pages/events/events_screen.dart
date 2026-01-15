@@ -5,6 +5,8 @@ import '../../services/mock_data_service.dart';
 import '../../models/models.dart';
 import '../../utils/theme.dart';
 import '../../widgets/state_widgets.dart';
+import '../../widgets/custom_search_bar.dart';
+import '../../widgets/inline_search_results.dart';
 
 class EventsScreen extends StatefulWidget {
   const EventsScreen({super.key});
@@ -16,35 +18,30 @@ class EventsScreen extends StatefulWidget {
 class _EventsScreenState extends State<EventsScreen> {
   final MockDataService _mockDataService = MockDataService();
   String _selectedCategory = 'All';
-  bool _isListView = true;
-  bool _isLoading = false;
 
-  final List<String> _categories = ['All', 'Electronic', 'Hip Hop', 'House', 'Jazz', 'Latin'];
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
-  void initState() {
-    super.initState();
-    _loadData();
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 1)); // Mock loading delay
-    if (mounted) {
-      setState(() => _isLoading = false);
+  void _clearSearch() {
+    if (_searchQuery.isNotEmpty || _searchController.text.isNotEmpty) {
+      setState(() {
+        _searchQuery = '';
+        _searchController.clear();
+        FocusScope.of(context).unfocus();
+      });
+    } else {
+      FocusScope.of(context).unfocus();
     }
-  }
-
-  Future<void> _onRefresh() async {
-    await _loadData();
   }
 
   @override
   Widget build(BuildContext context) {
-    final events = _mockDataService.getEvents();
-    final friends = _mockDataService.getFriends();
-    final clubs = _mockDataService.getClubs();
-
     // Map categories to some images for the "By Category" section
     final Map<String, String> categoryImages = {
       'Electronic': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745',
@@ -53,217 +50,109 @@ class _EventsScreenState extends State<EventsScreen> {
       'Jazz': 'https://images.unsplash.com/photo-1511192336575-5a79af67a629',
     };
 
-    return Scaffold(
-      body: SafeArea(
-        child: _isLoading
-            ? _buildShimmerLoading()
-            : RefreshIndicator(
-                onRefresh: _onRefresh,
-                color: AppTheme.primaryPurple,
-                child: SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildHeader(),
-                        const SizedBox(height: 20),
-                        _buildSearchBar(),
-                        const SizedBox(height: 20),
-                        _buildCategoryTabs(),
-                        const SizedBox(height: 20),
-                        _buildViewToggle(),
-                        const SizedBox(height: 20),
-                        _buildByCategorySection(categoryImages),
-                        const SizedBox(height: 24),
-                        _buildNearYouSection(events, clubs),
-                        const SizedBox(height: 24),
-                        _buildFriendActivitySection(friends),
-                        const SizedBox(height: 80), // Space for bottom nav
-                      ],
+    return GestureDetector(
+      onTap: _clearSearch,
+      behavior: HitTestBehavior.opaque,
+      child: Scaffold(
+        body: SafeArea(
+          child: FutureBuilder<List<dynamic>>(
+            future: Future.wait([
+              _mockDataService.getEvents(),
+              _mockDataService.getClubs(),
+              _mockDataService.getFriends(),
+            ]),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple));
+              }
+              if (snapshot.hasError) {
+                return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
+              }
+
+              final allEvents = snapshot.data![0] as List<Event>;
+              final clubs = snapshot.data![1] as List<Club>;
+              final friends = snapshot.data![2] as List<User>;
+
+              final filteredEvents = allEvents.where((e) {
+                return _selectedCategory == 'All' || e.category == _selectedCategory;
+              }).toList();
+
+              return Stack(
+                children: [
+                  RefreshIndicator(
+                    onRefresh: () async {
+                      setState(() {});
+                    },
+                    color: AppTheme.primaryPurple,
+                    child: NotificationListener<ScrollNotification>(
+                      onNotification: (notification) {
+                        if (notification is ScrollStartNotification &&
+                            notification.dragDetails != null) {
+                          _clearSearch();
+                        }
+                        return false;
+                      },
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _buildSearchBar(),
+                              const SizedBox(height: 20),
+                              _buildByCategorySection(categoryImages),
+                              const SizedBox(height: 24),
+                              _buildNearYouSection(filteredEvents, clubs),
+                              const SizedBox(height: 24),
+                              _buildFriendActivitySection(friends),
+                              const SizedBox(height: 80),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-      ),
-    );
-  }
-
-  Widget _buildShimmerLoading() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const ShimmerPlaceholder(width: 120, height: 32),
-          const SizedBox(height: 20),
-          const ShimmerPlaceholder(width: double.infinity, height: 48),
-          const SizedBox(height: 20),
-          Row(
-            children: List.generate(
-              5,
-              (index) => const Padding(
-                padding: EdgeInsets.only(right: 8),
-                child: ShimmerPlaceholder(width: 70, height: 32, borderRadius: 20),
-              ),
-            ),
+                  if (_searchQuery.isNotEmpty)
+                    Positioned(
+                      top: 80,
+                      left: 0,
+                      right: 0,
+                      child: FutureBuilder<List<String>>(
+                        future: _mockDataService.getAllEventCategories(),
+                        builder: (context, catSnapshot) {
+                          return InlineSearchResults(
+                            query: _searchQuery,
+                            searchType: SearchType.events,
+                            initialCategories: catSnapshot.data ?? [],
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              );
+            },
           ),
-          const SizedBox(height: 40),
-          const ShimmerPlaceholder(width: 150, height: 24),
-          const SizedBox(height: 16),
-          Row(
-            children: List.generate(
-              3,
-              (index) => const Padding(
-                padding: EdgeInsets.only(right: 12),
-                child: ShimmerPlaceholder(width: 140, height: 100),
-              ),
-            ),
-          ),
-          const SizedBox(height: 32),
-          const ShimmerPlaceholder(width: 150, height: 24),
-          const SizedBox(height: 16),
-          ...List.generate(
-            2,
-            (index) => const Padding(
-              padding: EdgeInsets.only(bottom: 16),
-              child: ShimmerPlaceholder(width: double.infinity, height: 250),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return const Text(
-      'Events',
-      style: TextStyle(
-        fontSize: 28,
-        fontWeight: FontWeight.bold,
-        color: Colors.white,
+        ),
       ),
     );
   }
 
   Widget _buildSearchBar() {
-    return Row(
-      children: [
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const TextField(
-              decoration: InputDecoration(
-                hintText: 'Search events...',
-                border: InputBorder.none,
-                icon: Icon(Icons.search, color: Colors.white70),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppTheme.primaryPurple,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: const Icon(Icons.tune, color: Colors.white),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCategoryTabs() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: _categories.map((category) {
-          final isSelected = _selectedCategory == category;
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: ChoiceChip(
-              label: Text(category),
-              selected: isSelected,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedCategory = category;
-                });
-              },
-              selectedColor: AppTheme.primaryPurple,
-              backgroundColor: Colors.white.withOpacity(0.1),
-              labelStyle: TextStyle(
-                color: isSelected ? Colors.white : Colors.white70,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ),
-              showCheckmark: false,
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildViewToggle() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Row(
-            children: [
-              _buildToggleButton(Icons.list, 'List', _isListView),
-              _buildToggleButton(Icons.map, 'Map', !_isListView),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildToggleButton(IconData icon, String text, bool isSelected) {
-    return GestureDetector(
-      onTap: () {
+    return CustomSearchBar(
+      controller: _searchController,
+      hintText: 'Search events...',
+      onChanged: (value) {
         setState(() {
-          _isListView = (text == 'List');
+          _searchQuery = value;
         });
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryPurple : Colors.transparent,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 18, color: isSelected ? Colors.white : Colors.white70),
-            const SizedBox(width: 4),
-            Text(
-              text,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.white70,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
   Widget _buildByCategorySection(Map<String, String> categoryImages) {
-    final categoriesToShow = categoryImages.keys.toList();
+    final categoriesToShow = ['All', ...categoryImages.keys.toList()];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -279,6 +168,11 @@ class _EventsScreenState extends State<EventsScreen> {
             itemCount: categoriesToShow.length,
             itemBuilder: (context, index) {
               final cat = categoriesToShow[index];
+              final isSelected = _selectedCategory == cat;
+              final imageUrl = cat == 'All'
+                  ? 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7'
+                  : categoryImages[cat]!;
+
               return InkWell(
                 onTap: () {
                   setState(() => _selectedCategory = cat);
@@ -289,11 +183,14 @@ class _EventsScreenState extends State<EventsScreen> {
                   margin: const EdgeInsets.only(right: 12),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16),
+                    border: isSelected
+                        ? Border.all(color: AppTheme.primaryPurple, width: 2)
+                        : null,
                     image: DecorationImage(
-                      image: NetworkImage(categoryImages[cat]!),
+                      image: NetworkImage(imageUrl),
                       fit: BoxFit.cover,
                       colorFilter: ColorFilter.mode(
-                        Colors.black.withOpacity(0.4),
+                        Colors.black.withOpacity(isSelected ? 0.2 : 0.5),
                         BlendMode.darken,
                       ),
                     ),
@@ -301,9 +198,9 @@ class _EventsScreenState extends State<EventsScreen> {
                   child: Center(
                     child: Text(
                       cat,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
                         fontSize: 16,
                       ),
                     ),
@@ -318,27 +215,33 @@ class _EventsScreenState extends State<EventsScreen> {
   }
 
   Widget _buildNearYouSection(List<Event> events, List<Club> clubs) {
-    // For demo purposes, we'll just use the first few events
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          'Near You',
+          'Available Events',
           style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         const SizedBox(height: 16),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: 3, // Show 3 for demo
-          itemBuilder: (context, index) {
-            final event = events[index % events.length];
-            // Find corresponding club to get location/distance/hours
-            final club = clubs.firstWhere((c) => c.name == event.clubName, orElse: () => clubs[0]);
-            
-            return _buildEventCard(event, club);
-          },
-        ),
+        events.isEmpty
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: Text('No events found for this category',
+                      style: TextStyle(color: Colors.white54)),
+                ),
+              )
+            : ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: events.length,
+                itemBuilder: (context, index) {
+                  final event = events[index];
+                  final club = clubs.firstWhere((c) => c.name == event.clubName, orElse: () => clubs.isNotEmpty ? clubs[0] : Club(id: '', name: '', rating: 0, category: '', location: '', distance: '', openUntil: '', imageUrl: '', description: ''));
+
+                  return _buildEventCard(event, club);
+                },
+              ),
       ],
     );
   }
@@ -349,70 +252,134 @@ class _EventsScreenState extends State<EventsScreen> {
       borderRadius: BorderRadius.circular(16),
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-            child: Image.network(
-              event.imageUrl,
-              height: 150,
-              width: double.infinity,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white.withOpacity(0.1)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Stack(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      event.clubName,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                ClipRRect(
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                  child: Image.network(
+                    event.imageUrl,
+                    height: 160,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                Positioned(
+                  top: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.orange,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'EVENT',
+                      style: TextStyle(
                         color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 12,
+                        letterSpacing: 1,
                       ),
                     ),
-                    Text(
-                      '${event.price.toInt()}\$/per',
+                  ),
+                ),
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryPurple,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '${event.price.toInt()}\$',
                       style: const TextStyle(
-                        color: AppTheme.primaryPurple,
+                        color: Colors.white,
                         fontWeight: FontWeight.bold,
+                        fontSize: 14,
                       ),
                     ),
-                  ],
+                  ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    const Icon(Icons.location_on, size: 14, color: Colors.white70),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${club.distance} • ${club.location}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                Positioned(
+                  bottom: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.access_time, size: 14, color: Colors.white70),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Doors Open At ${club.openUntil}',
-                      style: const TextStyle(color: Colors.white70, fontSize: 12),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.calendar_today, size: 12, color: Colors.white),
+                        const SizedBox(width: 4),
+                        Text(
+                          event.date,
+                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
+              ],
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    event.name,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.nightlife, size: 16, color: AppTheme.primaryPurple),
+                      const SizedBox(width: 6),
+                      Text(
+                        event.clubName,
+                        style: const TextStyle(
+                          color: AppTheme.primaryPurple,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      const Icon(Icons.location_on, size: 14, color: Colors.white54),
+                      const SizedBox(width: 4),
+                      Text(
+                        club.distance,
+                        style: const TextStyle(color: Colors.white54, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Icon(Icons.people_outline, size: 16, color: Colors.white54),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${event.attendees} attendees',
+                        style: const TextStyle(color: Colors.white54, fontSize: 13),
+                      ),
+                    ],
+                  ),
                 ],
               ),
             ),
@@ -423,64 +390,65 @@ class _EventsScreenState extends State<EventsScreen> {
   }
 
   Widget _buildFriendActivitySection(List<User> friends) {
+    if (friends.isEmpty) return const SizedBox.shrink();
     return GestureDetector(
       onTap: () => Get.toNamed(AppRoutes.friendsList),
       child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryPurple.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.3)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.local_fire_department, color: Colors.orange, size: 20),
-              const SizedBox(width: 8),
-              const Text(
-                'Tickets are running out!',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryPurple.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.local_fire_department, color: Colors.orange, size: 20),
+                SizedBox(width: 8),
+                Text(
+                  'Tickets are running out!',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              SizedBox(
-                width: 100,
-                height: 30,
-                child: Stack(
-                  children: List.generate(friends.take(4).length, (index) {
-                    return Positioned(
-                      left: index * 20.0,
-                      child: CircleAvatar(
-                        radius: 15,
-                        backgroundColor: AppTheme.darkBackground,
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                SizedBox(
+                  width: 100,
+                  height: 30,
+                  child: Stack(
+                    children: List.generate(friends.take(4).length, (index) {
+                      return Positioned(
+                        left: index * 20.0,
                         child: CircleAvatar(
-                          radius: 13,
-                          backgroundImage: NetworkImage(friends[index].avatarUrl),
+                          radius: 15,
+                          backgroundColor: AppTheme.darkBackground,
+                          child: CircleAvatar(
+                            radius: 13,
+                            backgroundImage: NetworkImage(friends[index].avatarUrl),
+                          ),
                         ),
-                      ),
-                    );
-                  }),
+                      );
+                    }),
+                  ),
                 ),
-              ),
-              const Expanded(
-                child: Text(
-                  'Your friends are going',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                const Expanded(
+                  child: Text(
+                    'Your friends are going',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
                 ),
-              ),
-              const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white70),
-            ],
-          ),
-        ],
-      ),
+                const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white70),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
