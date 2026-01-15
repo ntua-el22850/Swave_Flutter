@@ -18,18 +18,20 @@ class CustomSearchBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 48,
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: TextField(
-        controller: controller,
-        onChanged: onChanged,
-        onSubmitted: onSubmitted,
-        style: const TextStyle(color: Colors.white),
-        decoration: InputDecoration(
+    return GestureDetector(
+      onTap: () {}, // Prevents tap from bubbling to parent screens
+      child: Container(
+        height: 48,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: TextField(
+          controller: controller,
+          onChanged: onChanged,
+          onSubmitted: onSubmitted,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
           hintText: hintText,
           hintStyle: const TextStyle(color: Colors.white54),
           prefixIcon: const Icon(Icons.search, color: Colors.white70),
@@ -43,6 +45,7 @@ class CustomSearchBar extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

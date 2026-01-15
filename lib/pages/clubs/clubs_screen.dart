@@ -19,7 +19,7 @@ class ClubsScreen extends StatefulWidget {
 
 class _ClubsScreenState extends State<ClubsScreen> {
   bool _isMapView = false;
-  String _selectedCategory = 'All';
+  List<String> _selectedCategories = ['All'];
   final List<String> _categories = ['All', 'Electronic', 'Hip Hop', 'House'];
   final MockDataService _mockDataService = MockDataService();
   final NavigationController navCtrl = Get.find<NavigationController>();
@@ -29,6 +29,7 @@ class _ClubsScreenState extends State<ClubsScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   late MapController _mapController;
+  late Future<List<dynamic>> _dataFuture;
 
   @override
   void initState() {
@@ -39,6 +40,14 @@ class _ClubsScreenState extends State<ClubsScreen> {
         unFollowUser: false,
       ),
     );
+    _dataFuture = _loadData();
+  }
+
+  Future<List<dynamic>> _loadData() {
+    return Future.wait([
+      _mockDataService.getClubs(),
+      _mockDataService.getPromotions(),
+    ]);
   }
 
   @override
@@ -74,10 +83,7 @@ class _ClubsScreenState extends State<ClubsScreen> {
         child: Scaffold(
           body: SafeArea(
             child: FutureBuilder<List<dynamic>>(
-              future: Future.wait([
-                _mockDataService.getClubs(),
-                _mockDataService.getPromotions(),
-              ]),
+              future: _dataFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
@@ -179,9 +185,10 @@ class _ClubsScreenState extends State<ClubsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildCategoryFilters(),
-              _buildPromotionsCarousel(promos),
+              _buildPromotionsCarousel(promos, clubs),
               _buildByCategorySection(clubs),
               _buildNearYouSection(clubs),
+              const SizedBox(height: 80), // Added spacing to avoid overlap with FAB
             ],
           ),
         ),
@@ -194,6 +201,15 @@ class _ClubsScreenState extends State<ClubsScreen> {
       children: [
         OSMFlutter(
           controller: _mapController,
+          onGeoPointClicked: (geoPoint) {
+            final club = clubs.firstWhere(
+              (c) =>
+                  (c.latitude - geoPoint.latitude).abs() < 0.0001 &&
+                  (c.longitude - geoPoint.longitude).abs() < 0.0001,
+              orElse: () => clubs.first, // Fallback (should not happen)
+            );
+            Get.toNamed(AppRoutes.clubDetailPath(club.id), arguments: club);
+          },
           osmOption: OSMOption(
             userTrackingOption: const UserTrackingOption(
               enableTracking: true,
@@ -235,6 +251,25 @@ class _ClubsScreenState extends State<ClubsScreen> {
                     iconWidget: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withOpacity(0.7),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                                color: AppTheme.primaryPurple, width: 1),
+                          ),
+                          child: Text(
+                            club.name,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
                         if (i == 0)
                           _buildAlert(
                             'Tickets are running out!',
@@ -250,7 +285,7 @@ class _ClubsScreenState extends State<ClubsScreen> {
                         const Icon(
                           Icons.location_on,
                           color: AppTheme.primaryPurple,
-                          size: 40,
+                          size: 160, // Further increased size based on feedback
                         ),
                       ],
                     ),
@@ -284,10 +319,10 @@ class _ClubsScreenState extends State<ClubsScreen> {
                 ),
               ),
               child: SingleChildScrollView(
-                physics: const NeverScrollableScrollPhysics(),
+                physics: const AlwaysScrollableScrollPhysics(),
                 child: Column(
                   children: [
-                    _buildPromotionsCarousel(promos),
+                    _buildPromotionsCarousel(promos, clubs),
                     _buildNearYouSection(clubs),
                   ],
                 ),
@@ -300,22 +335,50 @@ class _ClubsScreenState extends State<ClubsScreen> {
   }
 
   Widget _buildCategoryFilters() {
+    final sortedCategories = List<String>.from(_categories);
+    sortedCategories.sort((a, b) {
+      if (a == 'All') return -1;
+      if (b == 'All') return 1;
+      bool aSelected = _selectedCategories.contains(a);
+      bool bSelected = _selectedCategories.contains(b);
+      if (aSelected && !bSelected) return -1;
+      if (!aSelected && bSelected) return 1;
+      return 0;
+    });
+
     return SizedBox(
       height: 50,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _categories.length,
+        itemCount: sortedCategories.length,
         itemBuilder: (context, index) {
-          final category = _categories[index];
-          final isSelected = _selectedCategory == category;
-          return Padding(
+          final category = sortedCategories[index];
+          final isSelected = _selectedCategories.contains(category);
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            key: ValueKey(category),
             padding: const EdgeInsets.only(right: 8.0),
             child: ChoiceChip(
               label: Text(category),
               selected: isSelected,
               onSelected: (selected) {
-                setState(() => _selectedCategory = category);
+                setState(() {
+                  if (category == 'All') {
+                    _selectedCategories = ['All'];
+                  } else {
+                    _selectedCategories.remove('All');
+                    if (selected) {
+                      _selectedCategories.add(category);
+                    } else {
+                      _selectedCategories.remove(category);
+                      if (_selectedCategories.isEmpty) {
+                        _selectedCategories = ['All'];
+                      }
+                    }
+                  }
+                });
               },
               selectedColor: AppTheme.primaryPurple,
               labelStyle: TextStyle(
@@ -328,7 +391,7 @@ class _ClubsScreenState extends State<ClubsScreen> {
     );
   }
 
-  Widget _buildPromotionsCarousel(List<Promotion> promos) {
+  Widget _buildPromotionsCarousel(List<Promotion> promos, List<Club> clubs) {
     if (promos.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,7 +456,9 @@ class _ClubsScreenState extends State<ClubsScreen> {
                             ),
                             child: const Text('NEW',
                                 style: TextStyle(
-                                    fontSize: 10, fontWeight: FontWeight.bold)),
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white)),
                           ),
                         ),
                       const Positioned(
@@ -412,7 +477,9 @@ class _ClubsScreenState extends State<ClubsScreen> {
                             Text(
                               promo.title,
                               style: const TextStyle(
-                                  fontWeight: FontWeight.bold, fontSize: 16),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.white),
                             ),
                             Text(
                               promo.description,
@@ -424,6 +491,43 @@ class _ClubsScreenState extends State<ClubsScreen> {
                           ],
                         ),
                       ),
+                      if (promo.clubId != null)
+                        Positioned(
+                          bottom: 12,
+                          right: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                  color: Colors.white.withOpacity(0.2)),
+                            ),
+                            child: Text(
+                              clubs
+                                  .firstWhere((c) => c.id == promo.clubId,
+                                      orElse: () => Club(
+                                          id: '',
+                                          name: 'Club',
+                                          rating: 0,
+                                          category: '',
+                                          location: '',
+                                          latitude: 0,
+                                          longitude: 0,
+                                          distance: '',
+                                          openUntil: '',
+                                          imageUrl: '',
+                                          description: ''))
+                                  .name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -436,10 +540,10 @@ class _ClubsScreenState extends State<ClubsScreen> {
   }
 
   Widget _buildByCategorySection(List<Club> clubs) {
-    final filteredClubs = clubs
-        .where((c) =>
-            _selectedCategory == 'All' || c.category == _selectedCategory)
-        .toList();
+    final filteredClubs = clubs.where((c) {
+      if (_selectedCategories.contains('All')) return true;
+      return _selectedCategories.contains(c.category);
+    }).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -447,7 +551,7 @@ class _ClubsScreenState extends State<ClubsScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
           child: Text(
-            'By Category: $_selectedCategory',
+            'By Category: ${_selectedCategories.join(", ")}',
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
         ),

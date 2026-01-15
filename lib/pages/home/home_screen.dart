@@ -23,6 +23,20 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  late Future<List<dynamic>> _dataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _dataFuture = _loadData();
+  }
+
+  Future<List<dynamic>> _loadData() {
+    return Future.wait([
+      mockData.getClubs(),
+      mockData.getPromotions(),
+    ]);
+  }
 
   @override
   void dispose() {
@@ -54,10 +68,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Stack(
             children: [
               FutureBuilder<List<dynamic>>(
-                future: Future.wait([
-                  mockData.getClubs(),
-                  mockData.getPromotions(),
-                ]),
+                future: _dataFuture,
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
                     return const Center(
@@ -90,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           _buildHeader(),
                           _buildSearchBar(),
                           const SizedBox(height: 10),
-                          _buildPromotionsSection(promos),
+                          _buildPromotionsSection(promos, clubs),
                           const SizedBox(height: 24),
                           _buildPreviouslyVisitedSection(
                               clubs.take(3).toList()),
@@ -177,7 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPromotionsSection(List<Promotion> promos) {
+  Widget _buildPromotionsSection(List<Promotion> promos, List<Club> clubs) {
     if (promos.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -217,90 +228,115 @@ class _HomeScreenState extends State<HomeScreen> {
                               arguments: promo.clubId);
                         }
                       },
-                      borderRadius: BorderRadius.circular(24),
+                      borderRadius: BorderRadius.circular(16),
                       child: Container(
                         decoration: BoxDecoration(
-                          color: AppTheme.lightPurple,
-                          borderRadius: BorderRadius.circular(24),
-                          gradient: LinearGradient(
-                            colors: [
-                              AppTheme.primaryPurple,
-                              AppTheme.lightPurple
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+                          borderRadius: BorderRadius.circular(16),
+                          image: DecorationImage(
+                            image: NetworkImage(promo.imageUrl),
+                            fit: BoxFit.cover,
                           ),
                         ),
                         child: Stack(
                           children: [
+                            Container(
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(16),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topRight,
+                                  end: Alignment.bottomLeft,
+                                  colors: [
+                                    Colors.black.withOpacity(0.3),
+                                    Colors.black.withOpacity(0.7)
+                                  ],
+                                ),
+                              ),
+                            ),
                             if (promo.isNew)
                               Positioned(
-                                top: 16,
-                                left: 16,
+                                top: 12,
+                                left: 12,
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 4),
+                                      horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.orange,
-                                    borderRadius: BorderRadius.circular(10),
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(4),
                                   ),
-                                  child: const Text(
-                                    'NEW',
-                                    style: TextStyle(
+                                  child: const Text('NEW',
+                                      style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white)),
+                                ),
+                              ),
+                            const Positioned(
+                              top: 12,
+                              right: 12,
+                              child: Icon(Icons.percent,
+                                  color: Colors.white, size: 20),
+                            ),
+                            Positioned(
+                              bottom: 12,
+                              left: 12,
+                              right: 12,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    promo.title,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Colors.white),
+                                  ),
+                                  Text(
+                                    promo.description,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                        fontSize: 12, color: Colors.white70),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (promo.clubId != null)
+                              Positioned(
+                                bottom: 45,
+                                right: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.5),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(
+                                        color: Colors.white.withOpacity(0.2)),
+                                  ),
+                                  child: Text(
+                                    clubs
+                                        .firstWhere((c) => c.id == promo.clubId,
+                                            orElse: () => Club(
+                                                id: '',
+                                                name: 'Club',
+                                                rating: 0,
+                                                category: '',
+                                                location: '',
+                                                latitude: 0,
+                                                longitude: 0,
+                                                distance: '',
+                                                openUntil: '',
+                                                imageUrl: '',
+                                                description: ''))
+                                        .name,
+                                    style: const TextStyle(
                                       color: Colors.white,
-                                      fontSize: 11,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.bold,
                                     ),
                                   ),
                                 ),
                               ),
-                            Padding(
-                              padding: const EdgeInsets.all(24.0),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.2),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: const Icon(
-                                      Icons.percent,
-                                      color: Colors.white,
-                                      size: 36,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 20),
-                                  Expanded(
-                                    child: Column(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          promo.title,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          promo.description,
-                                          style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
                           ],
                         ),
                       ),

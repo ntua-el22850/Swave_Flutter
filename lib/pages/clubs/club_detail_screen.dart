@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../models/models.dart';
 import '../../routes/app_routes.dart';
 import '../../services/mock_data_service.dart';
@@ -100,6 +101,22 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                         const SizedBox(height: 24),
                         _buildDescription(currentClub),
                         const SizedBox(height: 32),
+                        FutureBuilder<List<Promotion>>(
+                          future: _mockDataService.getPromotions(),
+                          builder: (context, promoSnapshot) {
+                            final clubPromos = (promoSnapshot.data ?? [])
+                                .where((p) => p.clubId == currentClub.id)
+                                .toList();
+                            if (clubPromos.isEmpty) return const SizedBox.shrink();
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _buildPromotionsSection(clubPromos, currentClub),
+                                const SizedBox(height: 32),
+                              ],
+                            );
+                          },
+                        ),
                         _buildReserveButton(currentClub),
                         const SizedBox(height: 32),
                         if (upcomingEvents.isNotEmpty) ...[
@@ -188,7 +205,12 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
         ),
         IconButton(
           icon: const Icon(Icons.share, color: Colors.white),
-          onPressed: () {},
+          onPressed: () {
+            Share.share(
+              'Check out ${currentClub.name} on Swave! \n\n${currentClub.description}',
+              subject: 'Look at this club: ${currentClub.name}',
+            );
+          },
         ),
       ],
     );
@@ -265,6 +287,130 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
               color: AppTheme.primaryPurple,
               fontWeight: FontWeight.bold,
             ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPromotionsSection(List<Promotion> promos, Club currentClub) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Promotions',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 160,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: promos.length,
+            itemBuilder: (context, index) {
+              final promo = promos[index];
+              return Container(
+                width: 300,
+                margin: const EdgeInsets.only(right: 16),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  image: DecorationImage(
+                    image: NetworkImage(promo.imageUrl),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: LinearGradient(
+                          begin: Alignment.topRight,
+                          end: Alignment.bottomLeft,
+                          colors: [
+                            Colors.black.withOpacity(0.3),
+                            Colors.black.withOpacity(0.7)
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (promo.isNew)
+                      Positioned(
+                        top: 12,
+                        left: 12,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('NEW',
+                              style: TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white)),
+                        ),
+                      ),
+                    const Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Icon(Icons.percent, color: Colors.white, size: 20),
+                    ),
+                    Positioned(
+                      bottom: 12,
+                      left: 12,
+                      right: 12,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            promo.title,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.white),
+                          ),
+                          Text(
+                            promo.description,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                                fontSize: 12, color: Colors.white70),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                              color: Colors.white.withOpacity(0.2)),
+                        ),
+                        child: Text(
+                          currentClub.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
         ),
       ],

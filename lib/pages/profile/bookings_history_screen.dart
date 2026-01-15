@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 import '../../utils/theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/mock_data_service.dart';
@@ -57,7 +58,7 @@ class BookingsHistoryScreen extends StatelessWidget {
                           itemCount: bookings.length,
                           separatorBuilder: (context, index) => const SizedBox(height: 15),
                           itemBuilder: (context, index) {
-                            return _buildBookingItem(bookings[index], clubs);
+                            return _buildBookingItem(context, bookings[index], clubs);
                           },
                         ),
                       ),
@@ -120,7 +121,76 @@ class BookingsHistoryScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBookingItem(Booking booking, List<Club> clubs) {
+  void _showQRDialog(BuildContext context, Booking booking) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: const Color(0xFF24243E),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.5)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Reservation QR Code',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                booking.clubName,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: QrImageView(
+                  data: booking.qrData ?? 'NO-DATA',
+                  version: QrVersions.auto,
+                  size: 200.0,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Text(
+                'Show this code at the entrance',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.5),
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextButton(
+                onPressed: () => Get.back(),
+                child: const Text(
+                  'CLOSE',
+                  style: TextStyle(
+                    color: AppTheme.primaryPurple,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBookingItem(BuildContext context, Booking booking, List<Club> clubs) {
     // Try to find a club with the same name to get an image
     final club = clubs.firstWhere(
       (c) => c.name == booking.clubName,
@@ -163,7 +233,7 @@ class BookingsHistoryScreen extends StatelessWidget {
         ],
       ),
       child: InkWell(
-        onTap: () {},
+        onTap: () => _showQRDialog(context, booking),
         child: Column(
           children: [
             Row(

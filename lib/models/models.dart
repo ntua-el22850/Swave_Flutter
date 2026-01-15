@@ -175,6 +175,7 @@ class Booking {
   final int guests;
   final int tableNumber;
   final double totalPrice;
+  final String? qrData;
 
   Booking({
     required this.id,
@@ -184,6 +185,7 @@ class Booking {
     required this.guests,
     required this.tableNumber,
     required this.totalPrice,
+    this.qrData,
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
@@ -209,6 +211,7 @@ class Booking {
       guests: json['guests'] ?? 0,
       tableNumber: json['tableNumber'] ?? 0,
       totalPrice: (json['totalPrice'] ?? 0.0).toDouble(),
+      qrData: json['qrData'],
     );
   }
 }

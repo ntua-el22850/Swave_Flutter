@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:mongo_dart/mongo_dart.dart' as mongo;
 import '../../models/models.dart';
 import '../../utils/theme.dart';
 import '../../services/mongodb_service.dart';
@@ -435,20 +436,37 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   void _confirmReservation() async {
     try {
+      final String bookingDate = 'Friday, Nov 15, 2025';
+      final String bookingTime = '9:00 PM';
+      final int guestsCount = 4;
+      final int tableNum = int.tryParse(selectedTable?.substring(1) ?? '0') ?? 0;
+
       final Map<String, dynamic> booking = {
         'clubName': club.name,
-        'date': 'Friday, Nov 15, 2025',
-        'time': '9:00 PM',
-        'guests': 4,
-        'tableNumber': int.tryParse(selectedTable?.substring(1) ?? '0') ?? 0,
+        'date': bookingDate,
+        'time': bookingTime,
+        'guests': guestsCount,
+        'tableNumber': tableNum,
         'totalPrice': basePrice,
       };
 
       await MongoDBService.createBooking(booking);
+
       // After creating the booking, we need to get its ID and add it to the user.
       // Since insert() in mongo_dart updates the map with _id, we can get it.
       if (booking.containsKey('_id')) {
-        final bookingId = booking['_id'].toString().replaceAll('ObjectId("', '').replaceAll('")', '');
+        final bookingId =
+            booking['_id'].toString().replaceAll('ObjectId("', '').replaceAll('")', '');
+
+        // Generate custom QR data
+        final String qrData = 'SWAVE-RES-${bookingId}-${club.name}-${bookingDate}';
+
+        // Update booking with QR data
+        await MongoDBService.bookingsCollection!.update(
+          mongo.where.id(booking['_id']),
+          mongo.modify.set('qrData', qrData),
+        );
+
         await AuthService.addBooking(bookingId);
       }
 

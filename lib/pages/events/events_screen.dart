@@ -17,10 +17,25 @@ class EventsScreen extends StatefulWidget {
 
 class _EventsScreenState extends State<EventsScreen> {
   final MockDataService _mockDataService = MockDataService();
-  String _selectedCategory = 'All';
+  List<String> _selectedCategories = ['All'];
 
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  late Future<List<dynamic>> _dataFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _dataFuture = _loadData();
+  }
+
+  Future<List<dynamic>> _loadData() {
+    return Future.wait([
+      _mockDataService.getEvents(),
+      _mockDataService.getClubs(),
+      _mockDataService.getFriends(),
+    ]);
+  }
 
   @override
   void dispose() {
@@ -44,11 +59,10 @@ class _EventsScreenState extends State<EventsScreen> {
   Widget build(BuildContext context) {
     // Map categories to some images for the "By Category" section
     final Map<String, String> categoryImages = {
-      'Electronic':
-          'https://images.unsplash.com/photo-1470225620780-dba8ba36b745',
-      'Hip Hop': 'https://images.unsplash.com/photo-1571266028243-3716f02d2d2e',
-      'House': 'https://images.unsplash.com/photo-1574391884720-bbc37bb15932',
-      'Jazz': 'https://images.unsplash.com/photo-1511192336575-5a79af67a629',
+      'Electronic': 'lib/assets/eventFilterElectronic.jpg',
+      'Hip Hop': 'lib/assets/eventFilterHipHop.jpg',
+      'House': 'lib/assets/eventFilterHouse.jpg',
+      'Jazz': 'lib/assets/eventFilterJazz.jpg',
     };
 
     return GestureDetector(
@@ -57,11 +71,7 @@ class _EventsScreenState extends State<EventsScreen> {
       child: Scaffold(
         body: SafeArea(
           child: FutureBuilder<List<dynamic>>(
-            future: Future.wait([
-              _mockDataService.getEvents(),
-              _mockDataService.getClubs(),
-              _mockDataService.getFriends(),
-            ]),
+            future: _dataFuture,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(
@@ -79,8 +89,8 @@ class _EventsScreenState extends State<EventsScreen> {
               final friends = snapshot.data![2] as List<User>;
 
               final filteredEvents = allEvents.where((e) {
-                return _selectedCategory == 'All' ||
-                    e.category == _selectedCategory;
+                if (_selectedCategories.contains('All')) return true;
+                return _selectedCategories.contains(e.category);
               }).toList();
 
               return Stack(
@@ -160,6 +170,17 @@ class _EventsScreenState extends State<EventsScreen> {
 
   Widget _buildByCategorySection(Map<String, String> categoryImages) {
     final categoriesToShow = ['All', ...categoryImages.keys.toList()];
+    final sortedCategories = List<String>.from(categoriesToShow);
+    sortedCategories.sort((a, b) {
+      if (a == 'All') return -1;
+      if (b == 'All') return 1;
+      bool aSelected = _selectedCategories.contains(a);
+      bool bSelected = _selectedCategories.contains(b);
+      if (aSelected && !bSelected) return -1;
+      if (!aSelected && bSelected) return 1;
+      return 0;
+    });
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -173,44 +194,63 @@ class _EventsScreenState extends State<EventsScreen> {
           height: 100,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            itemCount: categoriesToShow.length,
+            itemCount: sortedCategories.length,
             itemBuilder: (context, index) {
-              final cat = categoriesToShow[index];
-              final isSelected = _selectedCategory == cat;
+              final cat = sortedCategories[index];
+              final isSelected = _selectedCategories.contains(cat);
               final imageUrl = cat == 'All'
-                  ? 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7'
+                  ? 'lib/assets/eventFilterAll.jpg'
                   : categoryImages[cat]!;
 
-              return InkWell(
-                onTap: () {
-                  setState(() => _selectedCategory = cat);
-                },
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: 140,
-                  margin: const EdgeInsets.only(right: 12),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    border: isSelected
-                        ? Border.all(color: AppTheme.primaryPurple, width: 2)
-                        : null,
-                    image: DecorationImage(
-                      image: NetworkImage(imageUrl),
-                      fit: BoxFit.cover,
-                      colorFilter: ColorFilter.mode(
-                        Colors.black.withOpacity(isSelected ? 0.2 : 0.5),
-                        BlendMode.darken,
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                key: ValueKey(cat),
+                width: 140,
+                margin: const EdgeInsets.only(right: 12),
+                child: InkWell(
+                  onTap: () {
+                    setState(() {
+                      if (cat == 'All') {
+                        _selectedCategories = ['All'];
+                      } else {
+                        _selectedCategories.remove('All');
+                        if (_selectedCategories.contains(cat)) {
+                          _selectedCategories.remove(cat);
+                          if (_selectedCategories.isEmpty) {
+                            _selectedCategories = ['All'];
+                          }
+                        } else {
+                          _selectedCategories.add(cat);
+                        }
+                      }
+                    });
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      border: isSelected
+                          ? Border.all(color: AppTheme.primaryPurple, width: 2)
+                          : null,
+                      image: DecorationImage(
+                        image: AssetImage(imageUrl),
+                        fit: BoxFit.cover,
+                        colorFilter: ColorFilter.mode(
+                          Colors.black.withOpacity(isSelected ? 0.2 : 0.5),
+                          BlendMode.darken,
+                        ),
                       ),
                     ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      cat,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight:
-                            isSelected ? FontWeight.w900 : FontWeight.bold,
-                        fontSize: 16,
+                    child: Center(
+                      child: Text(
+                        cat,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight:
+                              isSelected ? FontWeight.w900 : FontWeight.bold,
+                          fontSize: 16,
+                        ),
                       ),
                     ),
                   ),

@@ -128,17 +128,29 @@ class _InlineSearchResultsState extends State<InlineSearchResults> {
   }
 
   Widget _buildCategoryFilters() {
+    final sortedCategories = List<String>.from(_availableCategories);
+    sortedCategories.sort((a, b) {
+      final aSelected = _selectedCategories.contains(a);
+      final bSelected = _selectedCategories.contains(b);
+      if (aSelected && !bSelected) return -1;
+      if (!aSelected && bSelected) return 1;
+      return 0;
+    });
+
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 8),
-        itemCount: _availableCategories.length,
+        itemCount: sortedCategories.length,
         itemBuilder: (context, index) {
-          final category = _availableCategories[index];
+          final category = sortedCategories[index];
           final isSelected = _selectedCategories.contains(category);
-          return Padding(
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            key: ValueKey(category),
             padding: const EdgeInsets.symmetric(horizontal: 4.0),
             child: FilterChip(
               label: Text(
