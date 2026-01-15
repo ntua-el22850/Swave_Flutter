@@ -208,7 +208,8 @@ class _InlineSearchResultsState extends State<InlineSearchResults> {
 
   Widget _buildEventResultItem(Event event) {
     return ListTile(
-      onTap: () => Get.toNamed(AppRoutes.eventDetailPath(event.id), arguments: event),
+      onTap: () =>
+          Get.toNamed(AppRoutes.eventDetailPath(event.id), arguments: event),
       leading: Container(
         width: 50,
         height: 50,
@@ -222,11 +223,18 @@ class _InlineSearchResultsState extends State<InlineSearchResults> {
       ),
       title: Text(
         event.name,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        style:
+            const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
       ),
-      subtitle: Text(
-        '${event.clubName} \u2022 ${event.date}',
-        style: const TextStyle(color: Colors.white54, fontSize: 12),
+      subtitle: FutureBuilder<Club?>(
+        future: _dataService.getClubById(event.clubId),
+        builder: (context, snapshot) {
+          final clubName = snapshot.data?.name ?? 'Loading...';
+          return Text(
+            '$clubName \u2022 ${event.date}',
+            style: const TextStyle(color: Colors.white54, fontSize: 12),
+          );
+        },
       ),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),

@@ -60,10 +60,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ]),
                 builder: (context, snapshot) {
                   if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple));
+                    return const Center(
+                        child: CircularProgressIndicator(
+                            color: AppTheme.primaryPurple));
                   }
                   if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
+                    return Center(
+                        child: Text('Error: ${snapshot.error}',
+                            style: const TextStyle(color: Colors.white)));
                   }
 
                   final clubs = snapshot.data![0] as List<Club>;
@@ -78,7 +82,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       return false;
                     },
                     child: SingleChildScrollView(
-                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -87,7 +92,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 10),
                           _buildPromotionsSection(promos),
                           const SizedBox(height: 24),
-                          _buildPreviouslyVisitedSection(clubs.take(3).toList()),
+                          _buildPreviouslyVisitedSection(
+                              clubs.take(3).toList()),
                           const SizedBox(height: 24),
                           _buildNearYouSection(clubs),
                           const SizedBox(height: 32),
@@ -204,84 +210,99 @@ class _HomeScreenState extends State<HomeScreen> {
                   final promo = promos[index];
                   return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppTheme.lightPurple,
-                        borderRadius: BorderRadius.circular(24),
-                        gradient: LinearGradient(
-                          colors: [AppTheme.primaryPurple, AppTheme.lightPurple],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                    child: InkWell(
+                      onTap: () {
+                        if (promo.clubId != null) {
+                          Get.toNamed(AppRoutes.clubDetailPath(promo.clubId!),
+                              arguments: promo.clubId);
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(24),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppTheme.lightPurple,
+                          borderRadius: BorderRadius.circular(24),
+                          gradient: LinearGradient(
+                            colors: [
+                              AppTheme.primaryPurple,
+                              AppTheme.lightPurple
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                         ),
-                      ),
-                      child: Stack(
-                        children: [
-                          if (promo.isNew)
-                            Positioned(
-                              top: 16,
-                              left: 16,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.orange,
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                child: const Text(
-                                  'NEW',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
+                        child: Stack(
+                          children: [
+                            if (promo.isNew)
+                              Positioned(
+                                top: 16,
+                                left: 16,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Text(
+                                    'NEW',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    shape: BoxShape.circle,
+                            Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withOpacity(0.2),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: const Icon(
+                                      Icons.percent,
+                                      color: Colors.white,
+                                      size: 36,
+                                    ),
                                   ),
-                                  child: const Icon(
-                                    Icons.percent,
-                                    color: Colors.white,
-                                    size: 36,
-                                  ),
-                                ),
-                                const SizedBox(width: 20),
-                                Expanded(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        promo.title,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.w800,
+                                  const SizedBox(width: 20),
+                                  Expanded(
+                                    child: Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          promo.title,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w800,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        promo.description,
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          promo.description,
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -333,21 +354,26 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 16),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(promos.length, (index) => Container(
-            width: _currentPage == index ? 24 : 8,
-            height: 8,
-            margin: const EdgeInsets.symmetric(horizontal: 4),
-            decoration: BoxDecoration(
-              color: _currentPage == index ? AppTheme.primaryPurple : Colors.white24,
-              borderRadius: BorderRadius.circular(4),
-            ),
-          )),
+          children: List.generate(
+              promos.length,
+              (index) => Container(
+                    width: _currentPage == index ? 24 : 8,
+                    height: 8,
+                    margin: const EdgeInsets.symmetric(horizontal: 4),
+                    decoration: BoxDecoration(
+                      color: _currentPage == index
+                          ? AppTheme.primaryPurple
+                          : Colors.white24,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  )),
         ),
       ],
     );
   }
 
-  Widget _buildCarouselArrow({required IconData icon, required VoidCallback onTap}) {
+  Widget _buildCarouselArrow(
+      {required IconData icon, required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -381,7 +407,8 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               IconButton(
                 onPressed: () => Get.toNamed(AppRoutes.bookingsHistory),
-                icon: const Icon(Icons.arrow_forward, color: Colors.white70, size: 20),
+                icon: const Icon(Icons.arrow_forward,
+                    color: Colors.white70, size: 20),
               ),
             ],
           ),
@@ -395,77 +422,95 @@ class _HomeScreenState extends State<HomeScreen> {
             itemCount: clubs.length,
             itemBuilder: (context, index) {
               final club = clubs[index];
-              return InkWell(
-                onTap: () => Get.toNamed(AppRoutes.clubDetailPath(club.id), arguments: club),
-                child: Container(
-                  width: 160,
-                  margin: const EdgeInsets.only(right: 16),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF24243E),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withOpacity(0.05)),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 85,
-                          height: 85,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            image: DecorationImage(
-                              image: NetworkImage(club.imageUrl),
-                              fit: BoxFit.cover,
-                            ),
-                            border: Border.all(color: AppTheme.primaryPurple.withOpacity(0.2), width: 3),
-                          ),
+              return Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () {
+                    debugPrint('Tapped Previously Visited Club: ${club.name}, ID: ${club.id}');
+                    Get.toNamed(AppRoutes.clubDetailPath(club.id),
+                        arguments: club.id);
+                  },
+                  borderRadius: BorderRadius.circular(24),
+                  child: Container(
+                    width: 160,
+                    margin: const EdgeInsets.only(right: 16),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF24243E),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 8,
+                          offset: Offset(0, 4),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        club.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          const Icon(Icons.star, color: Colors.orange, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${club.rating}',
-                            style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                          const Spacer(),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Center(
+                          child: Container(
+                            width: 85,
+                            height: 85,
                             decoration: BoxDecoration(
-                              color: AppTheme.primaryPurple,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              club.category,
-                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              image: DecorationImage(
+                                image: NetworkImage(club.imageUrl),
+                                fit: BoxFit.cover,
+                              ),
+                              border: Border.all(
+                                  color: AppTheme.primaryPurple.withOpacity(0.2),
+                                  width: 3),
                             ),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          club.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          children: [
+                            const Icon(Icons.star,
+                                color: Colors.orange, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${club.rating}',
+                              style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppTheme.primaryPurple,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                club.category,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -492,7 +537,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 children: [
                   const Row(
                     children: [
-                      Icon(Icons.location_on, color: AppTheme.primaryPurple, size: 22),
+                      Icon(Icons.location_on,
+                          color: AppTheme.primaryPurple, size: 22),
                       SizedBox(width: 6),
                       Text(
                         'Near You',
@@ -508,7 +554,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: () {
                       Get.find<NavigationController>().goToClubsMap();
                     },
-                    icon: const Icon(Icons.arrow_forward, color: Colors.white70, size: 20),
+                    icon: const Icon(Icons.arrow_forward,
+                        color: Colors.white70, size: 20),
                   ),
                 ],
               ),
@@ -535,81 +582,97 @@ class _HomeScreenState extends State<HomeScreen> {
           itemCount: clubsToShow.length,
           itemBuilder: (context, index) {
             final club = clubsToShow[index];
-            return InkWell(
-              onTap: () => Get.toNamed(AppRoutes.clubDetailPath(club.id), arguments: club),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF24243E),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white.withOpacity(0.05)),
-                ),
-                child: Row(
-                  children: [
-                    Hero(
-                      tag: 'club_img_${club.id}',
-                      child: Container(
-                        width: 90,
-                        height: 90,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          image: DecorationImage(
-                            image: NetworkImage(club.imageUrl),
-                            fit: BoxFit.cover,
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  debugPrint('Tapped Near You Club: ${club.name}, ID: ${club.id}');
+                  Get.toNamed(AppRoutes.clubDetailPath(club.id),
+                      arguments: club.id);
+                },
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF24243E),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white.withOpacity(0.05)),
+                  ),
+                  child: Row(
+                    children: [
+                      Hero(
+                        tag: 'club_img_${club.id}',
+                        child: Container(
+                          width: 90,
+                          height: 90,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(16),
+                            image: DecorationImage(
+                              image: NetworkImage(club.imageUrl),
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            club.name,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 17,
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              club.name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              const Icon(Icons.star, color: Colors.orange, size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                '${club.rating}',
-                                style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(width: 12),
-                              const Icon(Icons.directions_walk, color: Colors.white54, size: 14),
-                              Text(
-                                ' ${club.distance}',
-                                style: const TextStyle(color: Colors.white54, fontSize: 13),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 6),
-                          Row(
-                            children: [
-                              const Icon(Icons.access_time, color: AppTheme.primaryPurple, size: 14),
-                              const SizedBox(width: 4),
-                              Text(
-                                'Open until ${club.openUntil}',
-                                style: TextStyle(
-                                  color: AppTheme.primaryPurple.withOpacity(0.9),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(Icons.star,
+                                    color: Colors.orange, size: 16),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${club.rating}',
+                                  style: const TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.bold),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                const SizedBox(width: 12),
+                                const Icon(Icons.directions_walk,
+                                    color: Colors.white54, size: 14),
+                                Text(
+                                  ' ${club.distance}',
+                                  style: const TextStyle(
+                                      color: Colors.white54, fontSize: 13),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(Icons.access_time,
+                                    color: AppTheme.primaryPurple, size: 14),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Open until ${club.openUntil}',
+                                  style: TextStyle(
+                                    color:
+                                        AppTheme.primaryPurple.withOpacity(0.9),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
@@ -634,7 +697,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 child: const Text(
                   'Load More',
-                  style: TextStyle(color: AppTheme.primaryPurple, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: AppTheme.primaryPurple,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ),

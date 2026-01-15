@@ -25,73 +25,99 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
   }
 
   Future<void> _loadClub() async {
-    // Try to get from arguments first
-    if (Get.arguments is Club) {
-      club = Get.arguments as Club;
-      setState(() => _isLoading = false);
-    } else {
-      // Otherwise load from ID (Deep Linking)
-      final String? id = Get.parameters['id'];
-      final List<Club> allClubs = await _mockDataService.getClubs();
-      if (id != null) {
-        club = allClubs.firstWhere(
-              (c) => c.id == id,
-              orElse: () => allClubs.first,
-            );
+    debugPrint('ClubDetailScreen: _loadClub called. Arguments: ${Get.arguments}');
+    setState(() => _isLoading = true);
+    try {
+      // Try to get from arguments first
+      if (Get.arguments is Club) {
+        club = Get.arguments as Club;
+        debugPrint('ClubDetailScreen: Loaded club from arguments: ${club?.name}');
       } else {
-        club = allClubs.isNotEmpty ? allClubs.first : null;
+        // Otherwise load from ID (Deep Linking)
+        final String? id = Get.parameters['id'];
+        debugPrint('ClubDetailScreen: No Club argument, trying ID from parameters: $id');
+        final List<Club> allClubs = await _mockDataService.getClubs();
+        if (id != null) {
+          try {
+            club = allClubs.firstWhere((c) => c.id == id);
+            debugPrint('ClubDetailScreen: Loaded club from ID $id: ${club?.name}');
+          } catch (e) {
+            debugPrint('ClubDetailScreen: Club ID $id not found, falling back');
+            club = allClubs.isNotEmpty ? allClubs.first : null;
+          }
+        } else {
+          club = allClubs.isNotEmpty ? allClubs.first : null;
+        }
       }
-      setState(() => _isLoading = false);
+    } catch (e) {
+      debugPrint('Error loading club: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading || club == null) {
+    if (_isLoading) {
       return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple)),
+        body: Center(
+            child: CircularProgressIndicator(color: AppTheme.primaryPurple)),
+      );
+    }
+
+    final currentClub = club;
+    if (currentClub == null) {
+      return Scaffold(
+        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
+        body: const Center(
+          child: Text(
+            'Club not found',
+            style: TextStyle(color: Colors.white, fontSize: 18),
+          ),
+        ),
       );
     }
 
     return Scaffold(
       body: FutureBuilder<List<Event>>(
-        future: _mockDataService.getEventsByClub(club!.name),
-        builder: (context, snapshot) {
-          final upcomingEvents = snapshot.data ?? [];
-          return CustomScrollView(
-            physics: const BouncingScrollPhysics(),
-            slivers: [
-              _buildSliverAppBar(),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildClubHeader(),
-                      const SizedBox(height: 24),
-                      _buildDescription(),
-                      const SizedBox(height: 32),
-                      _buildReserveButton(),
-                      const SizedBox(height: 32),
-                      if (upcomingEvents.isNotEmpty) ...[
-                        _buildUpcomingEvents(upcomingEvents),
+          future: _mockDataService.getEventsByClub(currentClub.id),
+          builder: (context, snapshot) {
+            final upcomingEvents = snapshot.data ?? [];
+            return CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                _buildSliverAppBar(currentClub),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildClubHeader(currentClub),
+                        const SizedBox(height: 24),
+                        _buildDescription(currentClub),
                         const SizedBox(height: 32),
+                        _buildReserveButton(currentClub),
+                        const SizedBox(height: 32),
+                        if (upcomingEvents.isNotEmpty) ...[
+                          _buildUpcomingEvents(upcomingEvents),
+                          const SizedBox(height: 32),
+                        ],
+                        _buildReviewsSection(currentClub),
+                        const SizedBox(height: 100),
                       ],
-                      _buildReviewsSection(),
-                      const SizedBox(height: 100),
-                    ],
+                    ),
                   ),
                 ),
-              ),
-            ],
-          );
-        }
-      ),
+              ],
+            );
+          }),
     );
   }
 
-  Widget _buildSliverAppBar() {
+  Widget _buildSliverAppBar(Club currentClub) {
     return SliverAppBar(
       expandedHeight: 300,
       pinned: true,
@@ -106,7 +132,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
           fit: StackFit.expand,
           children: [
             Image.network(
-              club!.imageUrl,
+              currentClub.imageUrl,
               fit: BoxFit.cover,
             ),
             const DecoratedBox(
@@ -157,12 +183,12 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
     );
   }
 
-  Widget _buildClubHeader() {
+  Widget _buildClubHeader(Club currentClub) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          club!.name,
+          currentClub.name,
           style: const TextStyle(
             fontSize: 32,
             fontWeight: FontWeight.bold,
@@ -175,7 +201,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
             const Icon(Icons.star, color: Colors.amber, size: 20),
             const SizedBox(width: 4),
             Text(
-              club!.rating.toString(),
+              currentClub.rating.toString(),
               style: const TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -191,7 +217,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                 border: Border.all(color: AppTheme.primaryPurple, width: 1),
               ),
               child: Text(
-                club!.category,
+                currentClub.category,
                 style: const TextStyle(
                   color: AppTheme.primaryPurple,
                   fontSize: 12,
@@ -205,12 +231,12 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
     );
   }
 
-  Widget _buildDescription() {
+  Widget _buildDescription(Club currentClub) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          club!.description,
+          currentClub.description,
           maxLines: _isExpanded ? null : 3,
           overflow: _isExpanded ? TextOverflow.visible : TextOverflow.ellipsis,
           style: const TextStyle(
@@ -234,12 +260,13 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
     );
   }
 
-  Widget _buildReserveButton() {
+  Widget _buildReserveButton(Club currentClub) {
     return SizedBox(
       width: double.infinity,
       height: 56,
       child: ElevatedButton(
-        onPressed: () => Get.toNamed(AppRoutes.reservation, arguments: club),
+        onPressed: () =>
+            Get.toNamed(AppRoutes.reservation, arguments: currentClub),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppTheme.primaryPurple,
           shape: RoundedRectangleBorder(
@@ -280,72 +307,79 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
             itemCount: events.length,
             itemBuilder: (context, index) {
               final event = events[index];
-              return Container(
-                width: 200,
-                margin: const EdgeInsets.only(right: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: Colors.white10),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                      child: Image.network(
-                        event.imageUrl,
-                        height: 120,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
+              return InkWell(
+                onTap: () => Get.toNamed(AppRoutes.eventDetailPath(event.id),
+                    arguments: event),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  width: 200,
+                  margin: const EdgeInsets.only(right: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white10),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(20)),
+                        child: Image.network(
+                          event.imageUrl,
+                          height: 120,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            event.name,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                              color: Colors.white,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                '${event.price.toStringAsFixed(0)}\$/per',
-                                style: const TextStyle(
-                                  color: AppTheme.primaryPurple,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                      Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              event.name,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: Colors.white,
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.white10,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Text(
-                                  event.category,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${event.price.toStringAsFixed(0)}\$/per',
                                   style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 10,
+                                    color: AppTheme.primaryPurple,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                        ],
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white10,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    event.category,
+                                    style: const TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 10,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
@@ -355,7 +389,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
     );
   }
 
-  Widget _buildReviewsSection() {
+  Widget _buildReviewsSection(Club currentClub) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -380,13 +414,13 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        if (club!.reviews.isEmpty)
+        if (currentClub.reviews.isEmpty)
           const Text(
             'No reviews yet.',
             style: TextStyle(color: Colors.white54),
           )
         else
-          ...club!.reviews.map((review) => _buildReviewItem(review)),
+          ...currentClub.reviews.map((review) => _buildReviewItem(review)),
       ],
     );
   }
@@ -408,7 +442,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                 backgroundColor: AppTheme.primaryPurple,
                 child: Text(
                   review.userInitial,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                      color: Colors.white, fontWeight: FontWeight.bold),
                 ),
               ),
               const SizedBox(width: 12),

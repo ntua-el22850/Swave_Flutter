@@ -80,10 +80,14 @@ class _ClubsScreenState extends State<ClubsScreen> {
               ]),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple));
+                  return const Center(
+                      child: CircularProgressIndicator(
+                          color: AppTheme.primaryPurple));
                 }
                 if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
+                  return Center(
+                      child: Text('Error: ${snapshot.error}',
+                          style: const TextStyle(color: Colors.white)));
                 }
 
                 final clubs = snapshot.data![0] as List<Club>;
@@ -95,7 +99,9 @@ class _ClubsScreenState extends State<ClubsScreen> {
                       children: [
                         _buildTopBar(),
                         Expanded(
-                          child: _isMapView ? _buildMapView(clubs, promos) : _buildListView(clubs, promos),
+                          child: _isMapView
+                              ? _buildMapView(clubs, promos)
+                              : _buildListView(clubs, promos),
                         ),
                       ],
                     ),
@@ -120,7 +126,8 @@ class _ClubsScreenState extends State<ClubsScreen> {
               },
             ),
           ),
-          floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+          floatingActionButtonLocation:
+              FloatingActionButtonLocation.centerFloat,
           floatingActionButton: FloatingActionButton.extended(
             onPressed: () {
               setState(() {
@@ -218,10 +225,11 @@ class _ClubsScreenState extends State<ClubsScreen> {
           onMapIsReady: (isReady) async {
             if (isReady) {
               for (int i = 0; i < clubs.length; i++) {
+                final club = clubs[i];
                 await _mapController.addMarker(
                   GeoPoint(
-                    latitude: 51.5 + (i * 0.01),
-                    longitude: -0.12 + (i * 0.01),
+                    latitude: club.latitude,
+                    longitude: club.longitude,
                   ),
                   markerIcon: MarkerIcon(
                     iconWidget: Column(
@@ -260,7 +268,8 @@ class _ClubsScreenState extends State<ClubsScreen> {
               color: Colors.black45,
               child: const Text(
                 'Using your current location',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                    color: Colors.white, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -339,67 +348,84 @@ class _ClubsScreenState extends State<ClubsScreen> {
             itemCount: promos.length,
             itemBuilder: (context, index) {
               final promo = promos[index];
-              return Container(
-                width: 300,
-                margin: const EdgeInsets.only(right: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  image: DecorationImage(
-                    image: NetworkImage(promo.imageUrl),
-                    fit: BoxFit.cover,
+              return InkWell(
+                onTap: () {
+                  if (promo.clubId != null) {
+                    Get.toNamed(AppRoutes.clubDetailPath(promo.clubId!),
+                        arguments: promo.clubId);
+                  }
+                },
+                child: Container(
+                  width: 300,
+                  margin: const EdgeInsets.only(right: 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    image: DecorationImage(
+                      image: NetworkImage(promo.imageUrl),
+                      fit: BoxFit.cover,
+                    ),
                   ),
-                ),
-                child: Stack(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16),
-                        gradient: LinearGradient(
-                          begin: Alignment.topRight,
-                          end: Alignment.bottomLeft,
-                          colors: [Colors.black.withOpacity(0.3), Colors.black.withOpacity(0.7)],
+                  child: Stack(
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          gradient: LinearGradient(
+                            begin: Alignment.topRight,
+                            end: Alignment.bottomLeft,
+                            colors: [
+                              Colors.black.withOpacity(0.3),
+                              Colors.black.withOpacity(0.7)
+                            ],
+                          ),
                         ),
                       ),
-                    ),
-                    if (promo.isNew)
-                      Positioned(
+                      if (promo.isNew)
+                        Positioned(
+                          top: 12,
+                          left: 12,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.red,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('NEW',
+                                style: TextStyle(
+                                    fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      const Positioned(
                         top: 12,
+                        right: 12,
+                        child:
+                            Icon(Icons.percent, color: Colors.white, size: 20),
+                      ),
+                      Positioned(
+                        bottom: 12,
                         left: 12,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text('NEW', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                        right: 12,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              promo.title,
+                              style: const TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 16),
+                            ),
+                            Text(
+                              promo.description,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                  fontSize: 12, color: Colors.white70),
+                            ),
+                          ],
                         ),
                       ),
-                    const Positioned(
-                      top: 12,
-                      right: 12,
-                      child: Icon(Icons.percent, color: Colors.white, size: 20),
-                    ),
-                    Positioned(
-                      bottom: 12,
-                      left: 12,
-                      right: 12,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            promo.title,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                          Text(
-                            promo.description,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 12, color: Colors.white70),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               );
             },
@@ -410,8 +436,10 @@ class _ClubsScreenState extends State<ClubsScreen> {
   }
 
   Widget _buildByCategorySection(List<Club> clubs) {
-    final filteredClubs = clubs.where((c) => 
-      _selectedCategory == 'All' || c.category == _selectedCategory).toList();
+    final filteredClubs = clubs
+        .where((c) =>
+            _selectedCategory == 'All' || c.category == _selectedCategory)
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -425,68 +453,84 @@ class _ClubsScreenState extends State<ClubsScreen> {
         ),
         SizedBox(
           height: 180,
-              child: filteredClubs.isEmpty
-                  ? const Center(child: Text('No clubs found in this category', style: TextStyle(color: Colors.white54)))
-                  : ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      itemCount: filteredClubs.length,
-                      itemBuilder: (context, index) {
-                        final club = filteredClubs[index];
-                        return InkWell(
-                          onTap: () => Get.toNamed(AppRoutes.clubDetailPath(club.id), arguments: club),
+          child: filteredClubs.isEmpty
+              ? const Center(
+                  child: Text('No clubs found in this category',
+                      style: TextStyle(color: Colors.white54)))
+              : ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: filteredClubs.length,
+                  itemBuilder: (context, index) {
+                    final club = filteredClubs[index];
+                    return Container(
+                      width: 140,
+                      margin: const EdgeInsets.only(right: 16),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            debugPrint('Tapped By Category Club: ${club.name}, ID: ${club.id}');
+                            Get.toNamed(AppRoutes.clubDetailPath(club.id),
+                                arguments: club);
+                          },
                           borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                  width: 140,
-                  margin: const EdgeInsets.only(right: 16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(12),
-                            image: DecorationImage(
-                              image: NetworkImage(club.imageUrl),
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          child: Stack(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Positioned(
-                                top: 8,
-                                right: 8,
+                              Expanded(
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: Colors.black54,
-                                    borderRadius: BorderRadius.circular(4),
+                                    borderRadius: BorderRadius.circular(12),
+                                    image: DecorationImage(
+                                      image: NetworkImage(club.imageUrl),
+                                      fit: BoxFit.cover,
+                                    ),
                                   ),
-                                  child: Row(
+                                  child: Stack(
                                     children: [
-                                      const Icon(Icons.star, color: Colors.amber, size: 12),
-                                      Text(' ${club.rating}', style: const TextStyle(fontSize: 10)),
+                                      Positioned(
+                                        top: 8,
+                                        right: 8,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 4, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black54,
+                                            borderRadius:
+                                                BorderRadius.circular(4),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.star,
+                                                  color: Colors.amber,
+                                                  size: 12),
+                                              Text(' ${club.rating}',
+                                                  style: const TextStyle(
+                                                      fontSize: 10)),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                club.name,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ],
                           ),
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        club.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
         ),
       ],
     );
@@ -512,66 +556,82 @@ class _ClubsScreenState extends State<ClubsScreen> {
           itemCount: clubsToShow.length,
           itemBuilder: (context, index) {
             final club = clubsToShow[index];
-            return InkWell(
-              onTap: () => Get.toNamed(AppRoutes.clubDetailPath(club.id), arguments: club),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                margin: const EdgeInsets.only(bottom: 16),
-                height: 100,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 100,
-                      decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(12),
-                          bottomLeft: Radius.circular(12),
-                        ),
-                        image: DecorationImage(
-                          image: NetworkImage(club.imageUrl),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  club.name,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                ),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.star, color: Colors.amber, size: 14),
-                                    Text(' ${club.rating}', style: const TextStyle(fontSize: 12)),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            Text(
-                              'Downtown District • ${club.distance}',
-                              style: const TextStyle(color: Colors.white70, fontSize: 12),
-                            ),
-                            Text(
-                              'Open until ${club.openUntil}',
-                              style: TextStyle(color: AppTheme.primaryPurple.withOpacity(0.8), fontSize: 12),
-                            ),
-                          ],
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  debugPrint('Tapped Near You Club (ClubsScreen): ${club.name}, ID: ${club.id}');
+                  Get.toNamed(AppRoutes.clubDetailPath(club.id),
+                      arguments: club);
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.05),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 100,
+                        decoration: BoxDecoration(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            bottomLeft: Radius.circular(12),
+                          ),
+                          image: DecorationImage(
+                            image: NetworkImage(club.imageUrl),
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    club.name,
+                                    style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16),
+                                  ),
+                                  Row(
+                                    children: [
+                                      const Icon(Icons.star,
+                                          color: Colors.amber, size: 14),
+                                      Text(' ${club.rating}',
+                                          style: const TextStyle(fontSize: 12)),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                'Downtown District • ${club.distance}',
+                                style: const TextStyle(
+                                    color: Colors.white70, fontSize: 12),
+                              ),
+                              Text(
+                                'Open until ${club.openUntil}',
+                                style: TextStyle(
+                                    color: AppTheme.primaryPurple
+                                        .withOpacity(0.8),
+                                    fontSize: 12),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             );
@@ -596,7 +656,9 @@ class _ClubsScreenState extends State<ClubsScreen> {
                 ),
                 child: const Text(
                   'Load More',
-                  style: TextStyle(color: AppTheme.primaryPurple, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                      color: AppTheme.primaryPurple,
+                      fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -619,7 +681,8 @@ class _ClubsScreenState extends State<ClubsScreen> {
           const SizedBox(width: 8),
           Text(
             text,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+            style: const TextStyle(
+                color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
           ),
         ],
       ),

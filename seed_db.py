@@ -15,18 +15,18 @@ def seed_database():
     # Clubs Data
     clubs = [
         {
-            "id": "c0",
             "name": "Neon Nights",
             "rating": 4.7,
             "category": "Electronic",
             "location": "Downtown District",
+            "latitude": 37.9838,
+            "longitude": 23.7275,
             "distance": "0.5 km",
             "openUntil": "04:00 AM",
             "imageUrl": "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=800&q=80",
             "description": "Experience the ultimate neon-lit nightlife at Neon Nights. Featuring world-class DJs, state-of-the-art sound systems, and an atmosphere that will keep you dancing until dawn.",
             "reviews": [
                 {
-                    "id": "r1",
                     "userName": "Chris P.",
                     "userInitial": "C",
                     "rating": 5.0,
@@ -36,44 +36,48 @@ def seed_database():
             ]
         },
         {
-            "id": "c1",
             "name": "Neon Pulse",
             "rating": 4.8,
             "category": "Electronic",
             "location": "123 Techno Lane, Night City",
+            "latitude": 37.9755,
+            "longitude": 23.7348,
             "distance": "1.2 km",
             "openUntil": "04:00 AM",
             "imageUrl": "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=800&q=80",
             "description": "The ultimate electronic music experience with state-of-the-art lighting."
         },
         {
-            "id": "c2",
             "name": "Velvet Lounge",
             "rating": 4.5,
             "category": "Jazz",
             "location": "456 Smooth Ave, Downtown",
+            "latitude": 37.9902,
+            "longitude": 23.7251,
             "distance": "2.5 km",
             "openUntil": "02:00 AM",
             "imageUrl": "https://images.unsplash.com/photo-1514525253344-ad715d730a89?auto=format&fit=crop&w=800&q=80",
             "description": "Sophisticated jazz and cocktails in a luxurious setting."
         },
         {
-            "id": "c3",
             "name": "The Bassment",
             "rating": 4.6,
             "category": "Hip Hop",
             "location": "789 Rhythm St, Westside",
+            "latitude": 37.9680,
+            "longitude": 23.7150,
             "distance": "3.1 km",
             "openUntil": "03:30 AM",
             "imageUrl": "https://images.unsplash.com/photo-1571266028243-3716f02d2d2e?auto=format&fit=crop&w=800&q=80",
             "description": "Raw energy and the best hip hop beats in the city."
         },
         {
-            "id": "c4",
             "name": "Elysium House",
             "rating": 4.9,
             "category": "House",
             "location": "101 Cloud Blvd, Uptown",
+            "latitude": 37.9715,
+            "longitude": 23.7430,
             "distance": "0.8 km",
             "openUntil": "05:00 AM",
             "imageUrl": "https://images.unsplash.com/photo-1574391884720-bbc37bb15932?auto=format&fit=crop&w=800&q=80",
@@ -81,12 +85,23 @@ def seed_database():
         }
     ]
 
+    # Clear existing data
+    db.clubs.delete_many({})
+    db.events.delete_many({})
+    db.promotions.delete_many({})
+
+    # Insert clubs and get their generated IDs
+    club_ids = db.clubs.insert_many(clubs).inserted_ids
+    
+    # We'll use the first two clubs for events and promotions
+    c0_id = club_ids[0]
+    c1_id = club_ids[1]
+
     # Events Data
     events = [
         {
-            "id": "e0",
             "name": "Electric Dreams Festival",
-            "clubName": "Neon Nights",
+            "clubId": c0_id,
             "date": "Sat, Jan 20",
             "price": 45.0,
             "category": "Electronic",
@@ -94,9 +109,8 @@ def seed_database():
             "imageUrl": "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80"
         },
         {
-            "id": "e1",
             "name": "Cyber Techno Rave",
-            "clubName": "Neon Pulse",
+            "clubId": c1_id,
             "date": "Sat, Jan 14",
             "price": 35.0,
             "category": "Electronic",
@@ -108,7 +122,7 @@ def seed_database():
     # Promotions Data
     promotions = [
         {
-            "id": "p1",
+            "clubId": c0_id,
             "title": "2-for-1 Cocktails",
             "description": "Enjoy 2-for-1 cocktails all night at Sky Deck every Thursday!",
             "imageUrl": "https://images.unsplash.com/photo-1572116469696-31de0f17cc34",
@@ -116,14 +130,7 @@ def seed_database():
         }
     ]
 
-    # Clear existing data and insert new data
-    db.clubs.delete_many({})
-    db.clubs.insert_many(clubs)
-    
-    db.events.delete_many({})
     db.events.insert_many(events)
-    
-    db.promotions.delete_many({})
     db.promotions.insert_many(promotions)
 
     print("Database seeded successfully!")

@@ -4,6 +4,8 @@ class Club {
   final double rating;
   final String category; // Electronic, Hip Hop, House, etc.
   final String location;
+  final double latitude;
+  final double longitude;
   final String distance;
   final String openUntil;
   final String imageUrl;
@@ -16,6 +18,8 @@ class Club {
     required this.rating,
     required this.category,
     required this.location,
+    required this.latitude,
+    required this.longitude,
     required this.distance,
     required this.openUntil,
     required this.imageUrl,
@@ -24,12 +28,29 @@ class Club {
   });
 
   factory Club.fromJson(Map<String, dynamic> json) {
+    String id = '';
+    if (json['_id'] != null) {
+      String rawId = json['_id'].toString();
+      // Handle "ObjectId("6969205e2601d3add617c257")" format
+      if (rawId.contains('ObjectId("')) {
+        id = rawId.split('"')[1];
+      } else if (json['_id'] is Map && json['_id']['\$oid'] != null) {
+        id = json['_id']['\$oid'].toString();
+      } else {
+        id = rawId;
+      }
+    } else {
+      id = (json['id'] ?? '').toString();
+    }
+
     return Club(
-      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      id: id,
       name: json['name'] ?? '',
       rating: (json['rating'] ?? 0.0).toDouble(),
       category: json['category'] ?? '',
       location: json['location'] ?? '',
+      latitude: (json['latitude'] ?? 0.0).toDouble(),
+      longitude: (json['longitude'] ?? 0.0).toDouble(),
       distance: json['distance'] ?? '',
       openUntil: json['openUntil'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
@@ -60,8 +81,22 @@ class Review {
   });
 
   factory Review.fromJson(Map<String, dynamic> json) {
+    String id = '';
+    if (json['_id'] != null) {
+      String rawId = json['_id'].toString();
+      if (rawId.contains('ObjectId("')) {
+        id = rawId.split('"')[1];
+      } else if (json['_id'] is Map && json['_id']['\$oid'] != null) {
+        id = json['_id']['\$oid'].toString();
+      } else {
+        id = rawId;
+      }
+    } else {
+      id = (json['id'] ?? '').toString();
+    }
+
     return Review(
-      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      id: id,
       userName: json['userName'] ?? '',
       userInitial: json['userInitial'] ?? '',
       rating: (json['rating'] ?? 0.0).toDouble(),
@@ -74,7 +109,7 @@ class Review {
 class Event {
   final String id;
   final String name;
-  final String clubName;
+  final String clubId;
   final String date;
   final double price;
   final String category;
@@ -84,7 +119,7 @@ class Event {
   Event({
     required this.id,
     required this.name,
-    required this.clubName,
+    required this.clubId,
     required this.date,
     required this.price,
     required this.category,
@@ -93,10 +128,36 @@ class Event {
   });
 
   factory Event.fromJson(Map<String, dynamic> json) {
+    String id = '';
+    if (json['_id'] != null) {
+      String rawId = json['_id'].toString();
+      if (rawId.contains('ObjectId("')) {
+        id = rawId.split('"')[1];
+      } else if (json['_id'] is Map && json['_id']['\$oid'] != null) {
+        id = json['_id']['\$oid'].toString();
+      } else {
+        id = rawId;
+      }
+    } else {
+      id = (json['id'] ?? '').toString();
+    }
+
+    String clubIdStr = '';
+    if (json['clubId'] != null) {
+      String rawClubId = json['clubId'].toString();
+      if (rawClubId.contains('ObjectId("')) {
+        clubIdStr = rawClubId.split('"')[1];
+      } else if (json['clubId'] is Map && json['clubId']['\$oid'] != null) {
+        clubIdStr = json['clubId']['\$oid'].toString();
+      } else {
+        clubIdStr = rawClubId;
+      }
+    }
+
     return Event(
-      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      id: id,
       name: json['name'] ?? '',
-      clubName: json['clubName'] ?? '',
+      clubId: clubIdStr,
       date: json['date'] ?? '',
       price: (json['price'] ?? 0.0).toDouble(),
       category: json['category'] ?? '',
@@ -126,8 +187,22 @@ class Booking {
   });
 
   factory Booking.fromJson(Map<String, dynamic> json) {
+    String id = '';
+    if (json['_id'] != null) {
+      String rawId = json['_id'].toString();
+      if (rawId.contains('ObjectId("')) {
+        id = rawId.split('"')[1];
+      } else if (json['_id'] is Map && json['_id']['\$oid'] != null) {
+        id = json['_id']['\$oid'].toString();
+      } else {
+        id = rawId;
+      }
+    } else {
+      id = (json['id'] ?? '').toString();
+    }
+
     return Booking(
-      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      id: id,
       clubName: json['clubName'] ?? '',
       date: json['date'] ?? '',
       time: json['time'] ?? '',
@@ -152,8 +227,22 @@ class User {
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
+    String id = '';
+    if (json['_id'] != null) {
+      String rawId = json['_id'].toString();
+      if (rawId.contains('ObjectId("')) {
+        id = rawId.split('"')[1];
+      } else if (json['_id'] is Map && json['_id']['\$oid'] != null) {
+        id = json['_id']['\$oid'].toString();
+      } else {
+        id = rawId;
+      }
+    } else {
+      id = (json['id'] ?? '').toString();
+    }
+
     return User(
-      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      id: id,
       username: json['username'] ?? '',
       bio: json['bio'] ?? '',
       avatarUrl: json['avatarUrl'] ?? '',
@@ -167,6 +256,7 @@ class Promotion {
   final String description;
   final String imageUrl;
   final bool isNew;
+  final String? clubId;
 
   Promotion({
     required this.id,
@@ -174,15 +264,43 @@ class Promotion {
     required this.description,
     required this.imageUrl,
     this.isNew = false,
+    this.clubId,
   });
 
   factory Promotion.fromJson(Map<String, dynamic> json) {
+    String id = '';
+    if (json['_id'] != null) {
+      String rawId = json['_id'].toString();
+      if (rawId.contains('ObjectId("')) {
+        id = rawId.split('"')[1];
+      } else if (json['_id'] is Map && json['_id']['\$oid'] != null) {
+        id = json['_id']['\$oid'].toString();
+      } else {
+        id = rawId;
+      }
+    } else {
+      id = (json['id'] ?? '').toString();
+    }
+
+    String? clubIdStr;
+    if (json['clubId'] != null) {
+      String rawClubId = json['clubId'].toString();
+      if (rawClubId.contains('ObjectId("')) {
+        clubIdStr = rawClubId.split('"')[1];
+      } else if (json['clubId'] is Map && json['clubId']['\$oid'] != null) {
+        clubIdStr = json['clubId']['\$oid'].toString();
+      } else {
+        clubIdStr = rawClubId;
+      }
+    }
+
     return Promotion(
-      id: (json['_id'] ?? json['id'] ?? '').toString(),
+      id: id,
       title: json['title'] ?? '',
       description: json['description'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
       isNew: json['isNew'] ?? false,
+      clubId: clubIdStr,
     );
   }
 }

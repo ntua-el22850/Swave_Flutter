@@ -44,7 +44,8 @@ class _EventsScreenState extends State<EventsScreen> {
   Widget build(BuildContext context) {
     // Map categories to some images for the "By Category" section
     final Map<String, String> categoryImages = {
-      'Electronic': 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745',
+      'Electronic':
+          'https://images.unsplash.com/photo-1470225620780-dba8ba36b745',
       'Hip Hop': 'https://images.unsplash.com/photo-1571266028243-3716f02d2d2e',
       'House': 'https://images.unsplash.com/photo-1574391884720-bbc37bb15932',
       'Jazz': 'https://images.unsplash.com/photo-1511192336575-5a79af67a629',
@@ -63,10 +64,14 @@ class _EventsScreenState extends State<EventsScreen> {
             ]),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple));
+                return const Center(
+                    child:
+                        CircularProgressIndicator(color: AppTheme.primaryPurple));
               }
               if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.white)));
+                return Center(
+                    child: Text('Error: ${snapshot.error}',
+                        style: const TextStyle(color: Colors.white)));
               }
 
               final allEvents = snapshot.data![0] as List<Event>;
@@ -74,7 +79,8 @@ class _EventsScreenState extends State<EventsScreen> {
               final friends = snapshot.data![2] as List<User>;
 
               final filteredEvents = allEvents.where((e) {
-                return _selectedCategory == 'All' || e.category == _selectedCategory;
+                return _selectedCategory == 'All' ||
+                    e.category == _selectedCategory;
               }).toList();
 
               return Stack(
@@ -94,7 +100,8 @@ class _EventsScreenState extends State<EventsScreen> {
                       },
                       child: SingleChildScrollView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
                         child: Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Column(
@@ -158,7 +165,8 @@ class _EventsScreenState extends State<EventsScreen> {
       children: [
         const Text(
           'By Category',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(
+              fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         const SizedBox(height: 16),
         SizedBox(
@@ -200,7 +208,8 @@ class _EventsScreenState extends State<EventsScreen> {
                       cat,
                       style: TextStyle(
                         color: Colors.white,
-                        fontWeight: isSelected ? FontWeight.w900 : FontWeight.bold,
+                        fontWeight:
+                            isSelected ? FontWeight.w900 : FontWeight.bold,
                         fontSize: 16,
                       ),
                     ),
@@ -220,7 +229,8 @@ class _EventsScreenState extends State<EventsScreen> {
       children: [
         const Text(
           'Available Events',
-          style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
+          style: TextStyle(
+              fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         const SizedBox(height: 16),
         events.isEmpty
@@ -237,7 +247,19 @@ class _EventsScreenState extends State<EventsScreen> {
                 itemCount: events.length,
                 itemBuilder: (context, index) {
                   final event = events[index];
-                  final club = clubs.firstWhere((c) => c.name == event.clubName, orElse: () => clubs.isNotEmpty ? clubs[0] : Club(id: '', name: '', rating: 0, category: '', location: '', distance: '', openUntil: '', imageUrl: '', description: ''));
+                  final club = clubs.firstWhere((c) => c.id == event.clubId,
+                      orElse: () => Club(
+                          id: '',
+                          name: 'Unknown',
+                          rating: 0,
+                          category: '',
+                          location: '',
+                          latitude: 0,
+                          longitude: 0,
+                          distance: '',
+                          openUntil: '',
+                          imageUrl: '',
+                          description: ''));
 
                   return _buildEventCard(event, club);
                 },
@@ -247,143 +269,162 @@ class _EventsScreenState extends State<EventsScreen> {
   }
 
   Widget _buildEventCard(Event event, Club club) {
-    return InkWell(
-      onTap: () => Get.toNamed(AppRoutes.eventDetailPath(event.id), arguments: event),
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-                  child: Image.network(
-                    event.imageUrl,
-                    height: 160,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-                Positioned(
-                  top: 12,
-                  left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.orange,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Text(
-                      'EVENT',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 12,
-                        letterSpacing: 1,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 12,
-                  right: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryPurple,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      '${event.price.toInt()}\$',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  bottom: 12,
-                  left: 12,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.calendar_today, size: 12, color: Colors.white),
-                        const SizedBox(width: 4),
-                        Text(
-                          event.date,
-                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          debugPrint('Tapped Event: ${event.name}, ID: ${event.id}');
+          Get.toNamed(AppRoutes.eventDetailPath(event.id), arguments: event);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withOpacity(0.1)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
                 children: [
-                  Text(
-                    event.name,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  ClipRRect(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(16)),
+                    child: Image.network(
+                      event.imageUrl,
+                      height: 160,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Row(
-                    children: [
-                      const Icon(Icons.nightlife, size: 16, color: AppTheme.primaryPurple),
-                      const SizedBox(width: 6),
-                      Text(
-                        event.clubName,
-                        style: const TextStyle(
-                          color: AppTheme.primaryPurple,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.orange,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Text(
+                        'EVENT',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 12,
+                          letterSpacing: 1,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      const Icon(Icons.location_on, size: 14, color: Colors.white54),
-                      const SizedBox(width: 4),
-                      Text(
-                        club.distance,
-                        style: const TextStyle(color: Colors.white54, fontSize: 13),
-                      ),
-                    ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.people_outline, size: 16, color: Colors.white54),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${event.attendees} attendees',
-                        style: const TextStyle(color: Colors.white54, fontSize: 13),
+                  Positioned(
+                    top: 12,
+                    right: 12,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryPurple,
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                    ],
+                      child: Text(
+                        '${event.price.toInt()}\$',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 12,
+                    left: 12,
+                    child: Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black54,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.calendar_today,
+                              size: 12, color: Colors.white),
+                          const SizedBox(width: 4),
+                          Text(
+                            event.date,
+                            style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      event.name,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.nightlife,
+                            size: 16, color: AppTheme.primaryPurple),
+                        const SizedBox(width: 6),
+                        Text(
+                          club.name,
+                          style: const TextStyle(
+                            color: AppTheme.primaryPurple,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Icon(Icons.location_on,
+                            size: 14, color: Colors.white54),
+                        const SizedBox(width: 4),
+                        Text(
+                          club.distance,
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(Icons.people_outline,
+                            size: 16, color: Colors.white54),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${event.attendees} attendees',
+                          style: const TextStyle(
+                              color: Colors.white54, fontSize: 13),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -404,7 +445,8 @@ class _EventsScreenState extends State<EventsScreen> {
           children: [
             const Row(
               children: [
-                Icon(Icons.local_fire_department, color: Colors.orange, size: 20),
+                Icon(Icons.local_fire_department,
+                    color: Colors.orange, size: 20),
                 SizedBox(width: 8),
                 Text(
                   'Tickets are running out!',
@@ -431,7 +473,8 @@ class _EventsScreenState extends State<EventsScreen> {
                           backgroundColor: AppTheme.darkBackground,
                           child: CircleAvatar(
                             radius: 13,
-                            backgroundImage: NetworkImage(friends[index].avatarUrl),
+                            backgroundImage:
+                                NetworkImage(friends[index].avatarUrl),
                           ),
                         ),
                       );
@@ -444,7 +487,8 @@ class _EventsScreenState extends State<EventsScreen> {
                     style: TextStyle(color: Colors.white70, fontSize: 13),
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white70),
+                const Icon(Icons.arrow_forward_ios,
+                    size: 14, color: Colors.white70),
               ],
             ),
           ],

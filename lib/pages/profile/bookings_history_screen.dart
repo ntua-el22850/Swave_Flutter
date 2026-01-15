@@ -119,7 +119,18 @@ class BookingsHistoryScreen extends StatelessWidget {
     // Try to find a club with the same name to get an image
     final club = clubs.firstWhere(
       (c) => c.name == booking.clubName,
-      orElse: () => clubs.isNotEmpty ? clubs[0] : Club(id: '', name: '', rating: 0, category: '', location: '', distance: '', openUntil: '', imageUrl: '', description: ''),
+      orElse: () => Club(
+          id: '',
+          name: booking.clubName,
+          rating: 0,
+          category: '',
+          location: '',
+          latitude: 0,
+          longitude: 0,
+          distance: '',
+          openUntil: '',
+          imageUrl: '',
+          description: ''),
     );
 
     return Container(

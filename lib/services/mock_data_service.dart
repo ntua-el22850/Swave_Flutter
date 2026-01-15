@@ -32,9 +32,18 @@ class MockDataService {
     return [];
   }
 
-  Future<List<Event>> getEventsByClub(String clubName) async {
+  Future<List<Event>> getEventsByClub(String clubId) async {
     final events = await getEvents();
-    return events.where((event) => event.clubName == clubName).toList();
+    return events.where((event) => event.clubId == clubId).toList();
+  }
+
+  Future<Club?> getClubById(String clubId) async {
+    final clubs = await getClubs();
+    try {
+      return clubs.firstWhere((c) => c.id == clubId);
+    } catch (e) {
+      return null;
+    }
   }
 
   Future<List<dynamic>> searchClubsAndEvents({
@@ -61,9 +70,24 @@ class MockDataService {
 
     if (searchType == SearchType.events || searchType == SearchType.all) {
       final allEvents = await getEvents();
+      final allClubs = await getClubs();
+
       final filteredEvents = allEvents.where((event) {
+        final club = allClubs.firstWhere((c) => c.id == event.clubId,
+            orElse: () => Club(
+                id: '',
+                name: 'Unknown',
+                rating: 0,
+                category: '',
+                location: '',
+                latitude: 0,
+                longitude: 0,
+                distance: '',
+                openUntil: '',
+                imageUrl: '',
+                description: ''));
         final matchesQuery = event.name.toLowerCase().contains(query) ||
-            event.clubName.toLowerCase().contains(query) ||
+            club.name.toLowerCase().contains(query) ||
             event.category.toLowerCase().contains(query);
         final matchesCategory = categories == null ||
             categories.isEmpty ||
