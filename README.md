@@ -8,7 +8,7 @@ If you want to use Swave on your Android phone, just follow these easy steps:
 
 ### 1. Download the App
 *   Get the **APK file** (the app installer) from our [Releases page](https://github.com/ntua-el22850/Swave_Flutter/releases) or from the person who shared it with you.
-*   The file is called `app-release.apk`.
+*   The file is called `Swave-v1.0.apk`.
 
 ### 2. Install on Your Phone
 *   Open the file on your Android phone.
