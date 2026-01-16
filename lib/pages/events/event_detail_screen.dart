@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../models/models.dart';
 import '../../services/mock_data_service.dart';
 import '../../utils/theme.dart';
-import '../../routes/app_routes.dart';
 
 class EventDetailScreen extends StatefulWidget {
   const EventDetailScreen({super.key});

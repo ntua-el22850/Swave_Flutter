@@ -459,7 +459,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
             booking['_id'].toString().replaceAll('ObjectId("', '').replaceAll('")', '');
 
         // Generate custom QR data
-        final String qrData = 'SWAVE-RES-${bookingId}-${club.name}-${bookingDate}';
+        final String qrData = 'SWAVE-RES-$bookingId-${club.name}-$bookingDate';
 
         // Update booking with QR data
         await MongoDBService.bookingsCollection!.update(

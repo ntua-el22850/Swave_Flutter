@@ -169,7 +169,7 @@ class _EventsScreenState extends State<EventsScreen> {
   }
 
   Widget _buildByCategorySection(Map<String, String> categoryImages) {
-    final categoriesToShow = ['All', ...categoryImages.keys.toList()];
+    final categoriesToShow = ['All', ...categoryImages.keys];
     final sortedCategories = List<String>.from(categoriesToShow);
     sortedCategories.sort((a, b) {
       if (a == 'All') return -1;

@@ -130,7 +130,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Switch(
             value: _settings[key] ?? false,
             onChanged: (value) => _updateSetting(key, value),
-            activeColor: Colors.white,
+            activeThumbColor: Colors.white,
             activeTrackColor: AppTheme.primaryPurple,
             inactiveThumbColor: Colors.white70,
             inactiveTrackColor: Colors.white10,

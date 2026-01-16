@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../utils/theme.dart';
 import '../../routes/app_routes.dart';
-import '../../services/auth_middleware.dart';
 import '../../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {

@@ -5,7 +5,6 @@ import '../../services/mock_data_service.dart';
 import '../../models/models.dart';
 import '../../utils/theme.dart';
 import '../../routes/app_routes.dart';
-import '../../widgets/state_widgets.dart';
 import '../../services/navigation_controller.dart';
 import '../../widgets/custom_search_bar.dart';
 import '../../widgets/inline_search_results.dart';

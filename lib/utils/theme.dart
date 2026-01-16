@@ -11,17 +11,14 @@ class AppTheme {
   static ThemeData get darkTheme {
     final baseTheme = ThemeData.dark();
     return baseTheme.copyWith(
-      useMaterial3: true,
       primaryColor: primaryPurple,
       scaffoldBackgroundColor: darkBackground,
       colorScheme: const ColorScheme.dark(
         primary: primaryPurple,
         secondary: accentPurple,
-        background: darkBackground,
         surface: Color(0xFF24243E),
         onPrimary: Colors.white,
         onSecondary: Colors.white,
-        onBackground: Colors.white,
         onSurface: Colors.white,
       ),
       splashFactory: InkRipple.splashFactory,
