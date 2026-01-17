@@ -504,7 +504,7 @@ class _ClubsScreenState extends State<ClubsScreen> {
                       ),
                       if (promo.clubId != null)
                         Positioned(
-                          bottom: 12,
+                          bottom: 32, // Adjusted bottom margin
                           right: 12,
                           child: Container(
                             padding: const EdgeInsets.symmetric(
