@@ -19,7 +19,7 @@ class AppRoutes {
   static const friendsList = '/friends-list';
   static const settings = '/settings';
 
-  // Helper methods to generate paths with IDs
+  // Helper methods
   static String clubDetailPath(String id) => '/clubs/$id';
   static String eventDetailPath(String id) => '/events/$id';
   static String userDetailPath(String id) => '/profile/$id';

@@ -30,7 +30,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const Color inactiveColor = Color(0xFFE8DFF5); 
 
     return Obx(() => Scaffold(
-      // IndexedStack ensures bottom navigation persists and state is maintained
       body: IndexedStack(
         index: navCtrl.selectedIndex,
         children: _screens,

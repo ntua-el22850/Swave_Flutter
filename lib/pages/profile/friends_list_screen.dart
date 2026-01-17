@@ -5,6 +5,7 @@ import '../../services/auth_service.dart';
 import '../../services/mongodb_service.dart';
 import '../../models/models.dart';
 import '../../routes/app_routes.dart';
+import '../../services/navigation_controller.dart';
 import '../../widgets/state_widgets.dart';
 
 class FriendsListScreen extends StatelessWidget {
@@ -140,6 +141,7 @@ class FriendsListScreen extends StatelessWidget {
     const Color purpleBackground = Color(0xFF7C5FDC);
     const Color activeColor = Colors.white;
     const Color inactiveColor = Color(0xFFE8DFF5);
+    final NavigationController navCtrl = Get.find<NavigationController>();
 
     return Container(
       decoration: const BoxDecoration(
@@ -173,7 +175,7 @@ class FriendsListScreen extends StatelessWidget {
               label: 'Profile',
             ),
           ],
-          currentIndex: 3, // Profile highlighted
+          currentIndex: 3,
           selectedItemColor: activeColor,
           unselectedItemColor: inactiveColor,
           backgroundColor: Colors.transparent,
@@ -181,7 +183,8 @@ class FriendsListScreen extends StatelessWidget {
           elevation: 0,
           onTap: (index) {
             if (index != 3) {
-              Get.offAllNamed('/'); // Navigate back to main and let it handle switching
+              navCtrl.setSelectedIndex(index);
+              Get.offAllNamed(AppRoutes.main);
             }
           },
         ),

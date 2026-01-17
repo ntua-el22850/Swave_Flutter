@@ -5,6 +5,8 @@ import '../../utils/theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/mock_data_service.dart';
 import '../../models/models.dart';
+import '../../routes/app_routes.dart';
+import '../../services/navigation_controller.dart';
 import '../../widgets/state_widgets.dart';
 
 class BookingsHistoryScreen extends StatelessWidget {
@@ -19,7 +21,7 @@ class BookingsHistoryScreen extends StatelessWidget {
       backgroundColor: AppTheme.darkBackground,
       body: FutureBuilder<List<dynamic>>(
         future: Future.wait([
-          mockService.getBookings(), // This currently gets all, but we might want to filter or fetch specific ones
+          mockService.getBookings(), 
           mockService.getClubs(),
         ]),
         builder: (context, snapshot) {
@@ -33,8 +35,21 @@ class BookingsHistoryScreen extends StatelessWidget {
           final allBookings = snapshot.data![0] as List<Booking>;
           final clubs = snapshot.data![1] as List<Club>;
           
-          // Filter bookings to only show those belonging to the user
           final bookings = allBookings.where((b) => userBookingIds.contains(b.id)).toList();
+
+          bookings.sort((a, b) {
+            try {
+              DateTime? dateA = _parseBookingDate(a.date);
+              DateTime? dateB = _parseBookingDate(b.date);
+              
+              if (dateA != null && dateB != null) {
+                return dateB.compareTo(dateA); 
+              }
+            } catch (e) {
+              // Fallback to string comparison if parsing fails
+            }
+            return b.date.compareTo(a.date);
+          });
 
           return Column(
             children: [
@@ -48,7 +63,6 @@ class BookingsHistoryScreen extends StatelessWidget {
                       )
                     : RefreshIndicator(
                         onRefresh: () async {
-                          // Trigger rebuild
                           (context as Element).markNeedsBuild();
                         },
                         color: AppTheme.primaryPurple,
@@ -80,8 +94,8 @@ class BookingsHistoryScreen extends StatelessWidget {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF7C5FDC), // Purple
-            Color(0xFF4A90E2), // Blueish
+            Color(0xFF7C5FDC),
+            Color(0xFF4A90E2),
           ],
         ),
         borderRadius: BorderRadius.only(
@@ -191,7 +205,6 @@ class BookingsHistoryScreen extends StatelessWidget {
   }
 
   Widget _buildBookingItem(BuildContext context, Booking booking, List<Club> clubs) {
-    // Try to find a club with the same name to get an image
     final club = clubs.firstWhere(
       (c) => c.name == booking.clubName,
       orElse: () => Club(
@@ -293,7 +306,7 @@ class BookingsHistoryScreen extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Paid',
+                      'Min. Consumption',
                       style: TextStyle(
                         color: Colors.greenAccent.withOpacity(0.8),
                         fontSize: 12,
@@ -356,7 +369,65 @@ class BookingsHistoryScreen extends StatelessWidget {
     );
   }
 
+  DateTime? _parseBookingDate(String dateStr) {
+    try {
+      
+      if (dateStr.contains(',')) {
+        List<String> parts = dateStr.split(',');
+        if (parts.length >= 2) {
+          String monthDay = parts[0].trim();
+          String year = parts[1].trim();
+          
+          List<String> md = monthDay.split(' ');
+          if (md.length == 2) {
+            int month = _getMonthInt(md[0]);
+            int day = int.parse(md[1]);
+            int yearInt = int.parse(year);
+            return DateTime(yearInt, month, day);
+          }
+        }
+      }
+      
+      
+      if (dateStr.contains(',')) {
+         List<String> parts = dateStr.split(',');
+         if (parts.length == 2 && parts[0].length == 3) {
+            String monthDay = parts[1].trim();
+            List<String> md = monthDay.split(' ');
+            if (md.length == 2) {
+              int month = _getMonthInt(md[0]);
+              int day = int.parse(md[1]);
+              return DateTime(2026, month, day);
+            }
+         }
+      }
+    } catch (e) {
+      // Ignore
+    }
+    return null;
+  }
+
+  int _getMonthInt(String monthStr) {
+    switch (monthStr.toLowerCase()) {
+      case 'jan': return 1;
+      case 'feb': return 2;
+      case 'mar': return 3;
+      case 'apr': return 4;
+      case 'may': return 5;
+      case 'jun': return 6;
+      case 'jul': return 7;
+      case 'aug': return 8;
+      case 'sep': return 9;
+      case 'oct': return 10;
+      case 'nov': return 11;
+      case 'dec': return 12;
+      default: return 1;
+    }
+  }
+
   Widget _buildBottomNavBar() {
+    final NavigationController navCtrl = Get.find<NavigationController>();
+
     return Container(
       decoration: const BoxDecoration(
         color: Color(0xFF7C5FDC),
@@ -389,12 +460,18 @@ class BookingsHistoryScreen extends StatelessWidget {
               label: 'Profile',
             ),
           ],
-          currentIndex: 3, // Profile selected
+          currentIndex: 3,
           selectedItemColor: Colors.white,
           unselectedItemColor: const Color(0xFFE8DFF5),
           backgroundColor: Colors.transparent,
           type: BottomNavigationBarType.fixed,
           elevation: 0,
+          onTap: (index) {
+            if (index != 3) {
+              navCtrl.setSelectedIndex(index);
+              Get.offAllNamed(AppRoutes.main);
+            }
+          },
         ),
       ),
     );

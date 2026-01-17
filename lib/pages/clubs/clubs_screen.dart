@@ -187,7 +187,7 @@ class _ClubsScreenState extends State<ClubsScreen> {
               _buildPromotionsCarousel(promos, clubs),
               _buildByCategorySection(clubs),
               _buildNearYouSection(clubs),
-              const SizedBox(height: 80), // Added spacing to avoid overlap with FAB
+              const SizedBox(height: 80), 
             ],
           ),
         ),
@@ -205,7 +205,7 @@ class _ClubsScreenState extends State<ClubsScreen> {
               (c) =>
                   (c.latitude - geoPoint.latitude).abs() < 0.0001 &&
                   (c.longitude - geoPoint.longitude).abs() < 0.0001,
-              orElse: () => clubs.first, // Fallback (should not happen)
+              orElse: () => clubs.first, 
             );
             Get.toNamed(AppRoutes.clubDetailPath(club.id), arguments: club);
           },
@@ -284,7 +284,7 @@ class _ClubsScreenState extends State<ClubsScreen> {
                         const Icon(
                           Icons.location_on,
                           color: AppTheme.primaryPurple,
-                          size: 160, // Further increased size based on feedback
+                          size: 160,
                         ),
                       ],
                     ),
@@ -293,6 +293,18 @@ class _ClubsScreenState extends State<ClubsScreen> {
               }
             }
           },
+        ),
+        Positioned(
+          top: 70,
+          right: 16,
+          child: FloatingActionButton.small(
+            heroTag: 'go_to_me',
+            onPressed: () async {
+              await _mapController.currentLocation();
+            },
+            backgroundColor: AppTheme.primaryPurple,
+            child: const Icon(Icons.my_location, color: Colors.white),
+          ),
         ),
         Column(
           children: [

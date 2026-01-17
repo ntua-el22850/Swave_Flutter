@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
 import '../../models/models.dart';
 import '../../routes/app_routes.dart';
 import '../../services/mock_data_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/mongodb_service.dart';
 import '../../utils/theme.dart';
 
 class ClubDetailScreen extends StatefulWidget {
@@ -30,26 +32,19 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
     debugPrint('ClubDetailScreen: _loadClub called. Arguments: ${Get.arguments}');
     setState(() => _isLoading = true);
     try {
-      // Try to get from arguments first
+      String? clubId;
       if (Get.arguments is Club) {
-        club = Get.arguments as Club;
-        debugPrint('ClubDetailScreen: Loaded club from arguments: ${club?.name}');
+        clubId = (Get.arguments as Club).id;
+      } else if (Get.parameters['id'] != null) {
+        clubId = Get.parameters['id'];
+      }
+
+      if (clubId != null) {
+        club = await _mockDataService.getClubById(clubId);
+        debugPrint('ClubDetailScreen: Loaded fresh club data for: ${club?.name}');
       } else {
-        // Otherwise load from ID (Deep Linking)
-        final String? id = Get.parameters['id'];
-        debugPrint('ClubDetailScreen: No Club argument, trying ID from parameters: $id');
         final List<Club> allClubs = await _mockDataService.getClubs();
-        if (id != null) {
-          try {
-            club = allClubs.firstWhere((c) => c.id == id);
-            debugPrint('ClubDetailScreen: Loaded club from ID $id: ${club?.name}');
-          } catch (e) {
-            debugPrint('ClubDetailScreen: Club ID $id not found, falling back');
-            club = allClubs.isNotEmpty ? allClubs.first : null;
-          }
-        } else {
-          club = allClubs.isNotEmpty ? allClubs.first : null;
-        }
+        club = allClubs.isNotEmpty ? allClubs.first : null;
       }
     } catch (e) {
       debugPrint('Error loading club: $e');
@@ -547,6 +542,10 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
   }
 
   Widget _buildReviewsSection(Club currentClub) {
+    final bool isLoggedIn = AuthService.currentUser != null;
+    final bool hasAlreadyReviewed = isLoggedIn &&
+        currentClub.reviews.any((r) => r.userName == AuthService.currentUser!['username']);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -561,24 +560,199 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                 color: Colors.white,
               ),
             ),
-            TextButton(
-              onPressed: () {},
-              child: const Text(
-                'View All',
-                style: TextStyle(color: AppTheme.primaryPurple),
+            if (isLoggedIn)
+              if (!hasAlreadyReviewed)
+                ElevatedButton.icon(
+                  onPressed: () => _showAddReviewSheet(currentClub),
+                  icon: const Icon(Icons.add_comment, size: 18),
+                  label: const Text('Add Review'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryPurple.withOpacity(0.2),
+                    foregroundColor: AppTheme.primaryPurple,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: const BorderSide(color: AppTheme.primaryPurple),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.green.withOpacity(0.5)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 16),
+                      SizedBox(width: 4),
+                      Text(
+                        'Reviewed',
+                        style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                    ],
+                  ),
+                )
+            else
+              TextButton(
+                onPressed: () {},
+                child: const Text(
+                  'View All',
+                  style: TextStyle(color: AppTheme.primaryPurple),
+                ),
               ),
-            ),
           ],
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 16),
         if (currentClub.reviews.isEmpty)
           const Text(
             'No reviews yet.',
             style: TextStyle(color: Colors.white54),
           )
         else
-          ...currentClub.reviews.map((review) => _buildReviewItem(review)),
+          ...currentClub.reviews.reversed.map((review) => _buildReviewItem(review)),
       ],
+    );
+  }
+
+  void _showAddReviewSheet(Club currentClub) {
+    final textController = TextEditingController();
+    double selectedRating = 5;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppTheme.darkBackground,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) => Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Add a Review',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Rating',
+                style: TextStyle(color: Colors.white70, fontSize: 16),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: List.generate(5, (index) {
+                  return IconButton(
+                    onPressed: () => setModalState(() => selectedRating = index + 1.0),
+                    icon: Icon(
+                      index < selectedRating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 32,
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: textController,
+                maxLines: 4,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Share your experience...',
+                  hintStyle: const TextStyle(color: Colors.white38),
+                  filled: true,
+                  fillColor: Colors.white.withOpacity(0.05),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    if (textController.text.trim().isEmpty) {
+                      Get.snackbar('Error', 'Please enter a review text',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.red,
+                          colorText: Colors.white);
+                      return;
+                    }
+
+                    final currentUser = AuthService.currentUser!;
+                    final String userName = currentUser['username'] ?? 'User';
+                    final String userInitial = userName.isNotEmpty ? userName[0].toUpperCase() : 'U';
+                    final String date = DateFormat('MMM yyyy').format(DateTime.now());
+
+                    final reviewData = {
+                      'userName': userName,
+                      'userInitial': userInitial,
+                      'rating': selectedRating,
+                      'date': date,
+                      'text': textController.text.trim(),
+                    };
+
+                    Get.back(); // Close bottom sheet
+                    
+                    // Show loading dialog using Get.dialog for safer context management
+                    Get.dialog(
+                      const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple)),
+                      barrierDismissible: false,
+                    );
+
+                    try {
+                      await MongoDBService.addReviewToClub(currentClub.id, reviewData);
+                      
+                      if (Get.isDialogOpen ?? false) Get.back(); // Close loading dialog
+                      
+                      Get.snackbar('Success', 'Review added successfully',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.green,
+                          colorText: Colors.white);
+                      
+                      if (mounted) {
+                        _loadClub();
+                      }
+                    } catch (e) {
+                      if (Get.isDialogOpen ?? false) Get.back(); // Close loading dialog
+                      
+                      Get.snackbar('Error', 'Failed to add review: $e',
+                          snackPosition: SnackPosition.BOTTOM,
+                          backgroundColor: Colors.red,
+                          colorText: Colors.white);
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.primaryPurple,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text('Submit Review', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

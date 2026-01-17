@@ -1,8 +1,8 @@
-# Swave - Your Ultimate Nightlife Companion 🌊
+# Swave - Your Ultimate Nightlife Companion
 
 Swave is a modern nightlife and events management application. It allows you to discover clubs, view upcoming events, make reservations, and manage your social nightlife profile!
 
-## 📱 How to Get Started (Simple Guide)
+## How to Get Started (Simple Guide)
 
 If you want to use Swave on your Android phone, just follow these easy steps:
 
@@ -21,7 +21,7 @@ If you want to use Swave on your Android phone, just follow these easy steps:
 
 ---
 
-## 🛠 For Developers & Advanced Users
+## For Developers & Advanced Users
 
 If you want to run the code itself or change the app, here is what you need:
 
@@ -36,7 +36,7 @@ If you want to run the code itself or change the app, here is what you need:
 
 ---
 
-## 📋 Technical Specs
+## Technical Specs
 *   **Works on**: Android phones (Android 5.0 and newer).
 *   **Requires**: Internet connection and Google Play Services (for maps).
 *   **Made with**: Flutter, MongoDB, and GetX.
@@ -56,10 +56,10 @@ If you want to run the code itself or change the app, here is what you need:
 *   **Environment**: [Flutter Dotenv](https://pub.dev/packages/flutter_dotenv)
 
 
-## ❓ Having Trouble?
+## Having Trouble?
 *   **App won't install?** Check if you have enough space on your phone or if "Unknown Sources" is enabled in settings.
 *   **Maps not loading?** Make sure your internet is on and your phone is updated.
 *   **App crashes at start?** This usually means the database link is missing or incorrect in the `.env` file (for developers).
 
 ---
-**Enjoy the music! 🎶**
+**Enjoy the music!**

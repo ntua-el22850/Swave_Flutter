@@ -23,12 +23,10 @@ class MockDataService {
   }
 
   Future<List<User>> getFriends() async {
-    // For now returning empty or we could have a friends collection
     return [];
   }
 
   Future<List<Club>> getVisitedClubs() async {
-    // For now returning empty
     return [];
   }
 

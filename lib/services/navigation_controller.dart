@@ -9,7 +9,6 @@ class NavigationController extends GetxController {
 
   void setSelectedIndex(int index) {
     _selectedIndex.value = index;
-    // Reset map view if we switch away from clubs or explicitly
     if (index != 1) {
       _isClubMapView.value = false;
     }
@@ -17,7 +16,7 @@ class NavigationController extends GetxController {
 
   void goToClubsMap() {
     _isClubMapView.value = true;
-    _selectedIndex.value = 1; // Index 1 is Clubs
+    _selectedIndex.value = 1; // Index 1 einai Clubs
   }
 
   void resetClubMapView() {

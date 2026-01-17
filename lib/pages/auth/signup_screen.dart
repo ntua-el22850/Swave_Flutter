@@ -42,7 +42,7 @@ class _SignupScreenState extends State<SignupScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 40),
-              // Logo and Icon
+              
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -63,7 +63,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              // Tagline
+              
               Text(
                 'nightclub bookings • events',
                 style: GoogleFonts.poppins(
@@ -72,7 +72,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              // Welcome message in purple container
+              
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -91,7 +91,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
               ),
               const SizedBox(height: 32),
-              // Input Fields
+              
               _buildTextField(_usernameController, 'Username'),
               const SizedBox(height: 16),
               _buildPasswordField(_passwordController, 'Password', _obscurePassword, (val) {
@@ -106,7 +106,7 @@ class _SignupScreenState extends State<SignupScreen> {
               const SizedBox(height: 16),
               _buildTextField(_phoneController, 'Phone number', keyboardType: TextInputType.phone),
               const SizedBox(height: 32),
-              // Signup button
+              
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -145,7 +145,7 @@ class _SignupScreenState extends State<SignupScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Already have an account link
+              
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

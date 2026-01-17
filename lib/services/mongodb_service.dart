@@ -17,16 +17,8 @@ class MongoDBService {
       throw Exception('MONGO_URI not found in .env file');
     }
 
-    // Ensure we use swave_db by appending it to the URI if it's not already there
-    // or by letting Db.create handle it if the URI is correctly formatted.
     _db = await Db.create(uri);
     await _db!.open();
-
-    // If the URI didn't specify a database, mongo_dart might default to 'test'.
-    // We can't easily change the database on an open connection in mongo_dart like in other drivers.
-    // The best way is to ensure the URI has the database name.
-    // However, if we are already connected, we can try to re-open with the correct db if needed,
-    // but a simpler way is to just use the database name in the connection string.
     
     clubsCollection = _db!.collection('clubs');
     eventsCollection = _db!.collection('events');
@@ -77,5 +69,29 @@ class MongoDBService {
     if (ids.isEmpty) return [];
     final objectIds = ids.map((id) => ObjectId.fromHexString(id)).toList();
     return await usersCollection!.find(where.oneFrom('_id', objectIds)).toList();
+  }
+
+  static Future<void> addReviewToClub(String clubId, Map<String, dynamic> reviewData) async {
+    await clubsCollection!.update(
+      where.id(ObjectId.fromHexString(clubId)),
+      modify.push('reviews', reviewData),
+    );
+
+    final club = await clubsCollection!.findOne(where.id(ObjectId.fromHexString(clubId)));
+    if (club != null && club['reviews'] != null) {
+      final reviews = club['reviews'] as List;
+      if (reviews.isNotEmpty) {
+        double totalRating = 0;
+        for (var r in reviews) {
+          totalRating += (r['rating'] ?? 0).toDouble();
+        }
+        double averageRating = totalRating / reviews.length;
+        
+        await clubsCollection!.update(
+          where.id(ObjectId.fromHexString(clubId)),
+          modify.set('rating', double.parse(averageRating.toStringAsFixed(1))),
+        );
+      }
+    }
   }
 }

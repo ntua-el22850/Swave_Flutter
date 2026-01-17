@@ -57,7 +57,6 @@ class _EventsScreenState extends State<EventsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Map categories to some images for the "By Category" section
     final Map<String, String> categoryImages = {
       'Electronic': 'lib/assets/eventFilterElectronic.jpg',
       'Hip Hop': 'lib/assets/eventFilterHipHop.jpg',

@@ -2,7 +2,7 @@ class Club {
   final String id;
   final String name;
   final double rating;
-  final String category; // Electronic, Hip Hop, House, etc.
+  final String category;
   final String location;
   final double latitude;
   final double longitude;
@@ -31,7 +31,6 @@ class Club {
     String id = '';
     if (json['_id'] != null) {
       String rawId = json['_id'].toString();
-      // Handle "ObjectId("6969205e2601d3add617c257")" format
       if (rawId.contains('ObjectId("')) {
         id = rawId.split('"')[1];
       } else if (json['_id'] is Map && json['_id']['\$oid'] != null) {

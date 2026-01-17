@@ -107,7 +107,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               textAlign: TextAlign.center,
             ),
           ),
-          const SizedBox(width: 48), // To balance the back button
+          const SizedBox(width: 48),
         ],
       ),
     );

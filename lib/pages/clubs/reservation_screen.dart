@@ -14,14 +14,82 @@ class ReservationScreen extends StatefulWidget {
 }
 
 class _ReservationScreenState extends State<ReservationScreen> {
-  final Club club = Get.arguments as Club;
+  late Club club;
   String? selectedTable;
   final double basePrice = 200.0;
 
-  // Mocked booked tables
+  late DateTime selectedDate;
+  late TimeOfDay selectedTime;
+  int guestsCount = 4;
+
   final List<String> bookedTables = ['T2', 'T5', 'T8'];
 
   @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    if (Get.arguments is Club) {
+      club = Get.arguments as Club;
+      selectedDate = now.add(const Duration(days: 1));
+    } else if (Get.arguments is Map) {
+      club = Get.arguments['club'] as Club;
+      String dateStr = Get.arguments['date'] ?? '';
+      selectedDate = _parseDate(dateStr);
+    } else {
+      selectedDate = now.add(const Duration(days: 1));
+    }
+
+    final today = DateTime(now.year, now.month, now.day);
+    if (selectedDate.isBefore(today)) {
+      selectedDate = today;
+    }
+
+    selectedTime = const TimeOfDay(hour: 21, minute: 0);
+  }
+
+  DateTime _parseDate(String dateStr) {
+    if (dateStr.isEmpty) return DateTime.now().add(const Duration(days: 1));
+    try {
+      final months = {
+        'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+        'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12
+      };
+
+      for (var monthName in months.keys) {
+        if (dateStr.contains(monthName)) {
+          final numbers = RegExp(r'\d+').allMatches(dateStr).map((m) => m.group(0)!).toList();
+          if (numbers.isNotEmpty) {
+            int day = int.parse(numbers[0]);
+            int year = numbers.length > 1 ? int.parse(numbers[1]) : DateTime.now().year;
+            if (year < 100) year += 2000;
+            return DateTime(year, months[monthName]!, day);
+          }
+        }
+      }
+
+      return DateTime.tryParse(dateStr) ?? DateTime.now().add(const Duration(days: 1));
+    } catch (e) {
+      return DateTime.now().add(const Duration(days: 1));
+    }
+  }
+
+  String _formatDate(DateTime date) {
+    final months = [
+      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+    final days = [
+      'Monday', 'Tuesday', 'Wednesday', 'Thursday',
+      'Friday', 'Saturday', 'Sunday'
+    ];
+    return '${days[date.weekday - 1]}, ${months[date.month - 1]} ${date.day}, ${date.year}';
+  }
+
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:${time.minute.toString().padLeft(2, '0')} $period';
+  }
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.darkBackground,
@@ -155,9 +223,65 @@ class _ReservationScreenState extends State<ReservationScreen> {
           ),
           const SizedBox(height: 20),
           _buildSummaryRow(Icons.business, 'Club Name', club.name),
-          _buildSummaryRow(Icons.calendar_today, 'Date', 'Friday, Nov 15, 2025'),
-          _buildSummaryRow(Icons.access_time, 'Time', '9:00 PM'),
-          _buildSummaryRow(Icons.person_outline, 'Guests', '4 guests'),
+          _buildEditableSummaryRow(
+            Icons.calendar_today,
+            'Date',
+            _formatDate(selectedDate),
+            () async {
+              final now = DateTime.now();
+              final today = DateTime(now.year, now.month, now.day);
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: selectedDate.isBefore(today) ? today : selectedDate,
+                firstDate: today,
+                lastDate: today.add(const Duration(days: 365)),
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: const ColorScheme.dark(
+                        primary: AppTheme.primaryPurple,
+                        onPrimary: Colors.white,
+                        surface: Color(0xFF24243E),
+                        onSurface: Colors.white,
+                      ),
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              if (picked != null && picked != selectedDate) {
+                setState(() => selectedDate = picked);
+              }
+            },
+          ),
+          _buildEditableSummaryRow(
+            Icons.access_time,
+            'Time',
+            _formatTime(selectedTime),
+            () async {
+              final TimeOfDay? picked = await showTimePicker(
+                context: context,
+                initialTime: selectedTime,
+                builder: (context, child) {
+                  return Theme(
+                    data: Theme.of(context).copyWith(
+                      colorScheme: const ColorScheme.dark(
+                        primary: AppTheme.primaryPurple,
+                        onPrimary: Colors.white,
+                        surface: Color(0xFF24243E),
+                        onSurface: Colors.white,
+                      ),
+                    ),
+                    child: child!,
+                  );
+                },
+              );
+              if (picked != null && picked != selectedTime) {
+                setState(() => selectedTime = picked);
+              }
+            },
+          ),
+          _buildGuestCountRow(),
           _buildSummaryRow(Icons.table_restaurant, 'Table Number', selectedTable ?? 'Not selected'),
           const Divider(color: Colors.white10, height: 32),
           Row(
@@ -229,6 +353,81 @@ class _ReservationScreenState extends State<ReservationScreen> {
     );
   }
 
+  Widget _buildEditableSummaryRow(IconData icon, String label, String value, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Row(
+            children: [
+              Icon(icon, size: 20, color: AppTheme.primaryPurple),
+              const SizedBox(width: 12),
+              Text(label, style: const TextStyle(color: Colors.white70)),
+              const Spacer(),
+              Text(
+                value,
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(width: 8),
+              const Icon(Icons.edit, size: 14, color: Colors.white54),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGuestCountRow() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          const Icon(Icons.person_outline, size: 20, color: AppTheme.primaryPurple),
+          const SizedBox(width: 12),
+          const Text('Guests', style: TextStyle(color: Colors.white70)),
+          const Spacer(),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.remove, size: 16, color: Colors.white),
+                  onPressed: () {
+                    if (guestsCount > 1) {
+                      setState(() => guestsCount--);
+                    }
+                  },
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  padding: EdgeInsets.zero,
+                ),
+                Text(
+                  '$guestsCount',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.add, size: 16, color: Colors.white),
+                  onPressed: () {
+                    if (guestsCount < 14) {
+                      setState(() => guestsCount++);
+                    }
+                  },
+                  constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                  padding: EdgeInsets.zero,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSelectTableSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -288,7 +487,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
       ),
       child: Column(
         children: [
-          // Stage
+          
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -308,7 +507,6 @@ class _ReservationScreenState extends State<ReservationScreen> {
             ),
           ),
           const SizedBox(height: 40),
-          // Tables
           Wrap(
             spacing: 20,
             runSpacing: 20,
@@ -319,7 +517,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
             }),
           ),
           const SizedBox(height: 40),
-          // Bar
+          
           Container(
             width: double.infinity,
             padding: const EdgeInsets.symmetric(vertical: 12),
@@ -436,9 +634,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   void _confirmReservation() async {
     try {
-      final String bookingDate = 'Friday, Nov 15, 2025';
-      final String bookingTime = '9:00 PM';
-      final int guestsCount = 4;
+      final String bookingDate = _formatDate(selectedDate);
+      final String bookingTime = _formatTime(selectedTime);
       final int tableNum = int.tryParse(selectedTable?.substring(1) ?? '0') ?? 0;
 
       final Map<String, dynamic> booking = {
@@ -452,16 +649,13 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
       await MongoDBService.createBooking(booking);
 
-      // After creating the booking, we need to get its ID and add it to the user.
-      // Since insert() in mongo_dart updates the map with _id, we can get it.
+      
       if (booking.containsKey('_id')) {
         final bookingId =
             booking['_id'].toString().replaceAll('ObjectId("', '').replaceAll('")', '');
 
-        // Generate custom QR data
         final String qrData = 'SWAVE-RES-$bookingId-${club.name}-$bookingDate';
 
-        // Update booking with QR data
         await MongoDBService.bookingsCollection!.update(
           mongo.where.id(booking['_id']),
           mongo.modify.set('qrData', qrData),

@@ -35,7 +35,7 @@ class _LoginScreenState extends State<LoginScreen> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const SizedBox(height: 60),
-              // Logo and Icon
+              
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -56,7 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
               const SizedBox(height: 8),
-              // Tagline
+              
               Text(
                 'nightclub bookings • events',
                 style: GoogleFonts.poppins(
@@ -65,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 48),
-              // Welcome message in purple container
+              
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
@@ -84,7 +84,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 40),
-              // Input Fields
+              
               TextField(
                 controller: _usernameController,
                 style: const TextStyle(color: Colors.white),
@@ -140,7 +140,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 40),
-              // Confirm Sign up button
+              
               SizedBox(
                 width: double.infinity,
                 height: 56,
@@ -177,7 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ),
               const SizedBox(height: 20),
-              // Already have an account / Sign up link
+              
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

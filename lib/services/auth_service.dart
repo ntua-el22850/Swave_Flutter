@@ -44,8 +44,6 @@ class AuthService {
     };
 
     await MongoDBService.usersCollection!.insert(user);
-    // After insert, 'user' map includes '_id' of type ObjectId.
-    // We convert it to string to avoid type errors in the UI.
     if (user.containsKey('_id')) {
       user['_id'] = user['_id'].toString();
     }

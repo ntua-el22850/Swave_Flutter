@@ -47,15 +47,11 @@ class MyApp extends StatelessWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.dark,
 
-      // Initial page
       initialRoute: AppRoutes.login,
 
-      // Default transitions
       defaultTransition: Transition.rightToLeftWithFade,
       
-      // All app routes
       getPages: [
-        // Auth Routes
         GetPage(
           name: AppRoutes.login,
           page: () => const LoginScreen(),
@@ -65,7 +61,6 @@ class MyApp extends StatelessWidget {
           page: () => const SignupScreen(),
         ),
 
-        // Protected Main Shell
         GetPage(
           name: AppRoutes.main,
           page: () => const MainNavigationScreen(),
@@ -73,7 +68,6 @@ class MyApp extends StatelessWidget {
           transition: Transition.fadeIn,
         ),
 
-        // Detail screens - Modal style transitions
         GetPage(
           name: AppRoutes.clubDetail,
           page: () => const ClubDetailScreen(),
@@ -99,7 +93,6 @@ class MyApp extends StatelessWidget {
           transition: Transition.cupertinoDialog,
         ),
 
-        // Sub-screens
         GetPage(
           name: AppRoutes.bookingsHistory,
           page: () => const BookingsHistoryScreen(),

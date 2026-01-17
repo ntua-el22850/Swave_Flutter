@@ -116,7 +116,7 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
               if (_searchQuery.isNotEmpty)
                 Positioned(
-                  top: 130, // Adjust based on header and search bar height
+                  top: 130, 
                   left: 0,
                   right: 0,
                   child: FutureBuilder<List<String>>(

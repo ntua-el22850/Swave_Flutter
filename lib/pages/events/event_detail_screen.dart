@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../models/models.dart';
 import '../../services/mock_data_service.dart';
 import '../../utils/theme.dart';
+import '../../routes/app_routes.dart';
 
 class EventDetailScreen extends StatefulWidget {
   const EventDetailScreen({super.key});
@@ -184,15 +185,25 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: () {
-                        // In a real app, this would lead to a booking/ticket flow
-                        Get.snackbar(
-                          'Coming Soon',
-                          'Ticket booking for ${currentEvent.name} will be available soon!',
-                          snackPosition: SnackPosition.BOTTOM,
-                          backgroundColor: AppTheme.primaryPurple,
-                          colorText: Colors.white,
-                        );
+                      onPressed: () async {
+                        final club = await _mockDataService.getClubById(currentEvent.clubId);
+                        if (club != null) {
+                          Get.toNamed(
+                            AppRoutes.reservation,
+                            arguments: {
+                              'club': club,
+                              'date': currentEvent.date,
+                            },
+                          );
+                        } else {
+                          Get.snackbar(
+                            'Error',
+                            'Club details not found',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.redAccent,
+                            colorText: Colors.white,
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryPurple,
@@ -202,7 +213,7 @@ class _EventDetailScreenState extends State<EventDetailScreen> {
                         ),
                       ),
                       child: const Text(
-                        'Get Tickets',
+                        'Reserve Your Spot',
                         style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,

@@ -19,7 +19,7 @@ class CustomSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () {}, // Prevents tap from bubbling to parent screens
+      onTap: () {},
       child: Container(
         height: 48,
         decoration: BoxDecoration(
@@ -35,12 +35,6 @@ class CustomSearchBar extends StatelessWidget {
           hintText: hintText,
           hintStyle: const TextStyle(color: Colors.white54),
           prefixIcon: const Icon(Icons.search, color: Colors.white70),
-          suffixIcon: onFilterTap != null
-              ? IconButton(
-                  icon: const Icon(Icons.tune, color: Colors.white70),
-                  onPressed: onFilterTap,
-                )
-              : const Icon(Icons.tune, color: Colors.white70),
           border: InputBorder.none,
           contentPadding: const EdgeInsets.symmetric(vertical: 12),
         ),
