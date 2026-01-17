@@ -42,10 +42,24 @@ class Club {
       id = (json['id'] ?? '').toString();
     }
 
+    final reviewsList = (json['reviews'] as List?)
+            ?.map((r) => Review.fromJson(r))
+            .toList() ??
+        [];
+
+    double calculatedRating = (json['rating'] ?? 0.0).toDouble();
+    if (reviewsList.isNotEmpty) {
+      double totalRating = 0;
+      for (var review in reviewsList) {
+        totalRating += review.rating;
+      }
+      calculatedRating = double.parse((totalRating / reviewsList.length).toStringAsFixed(1));
+    }
+
     return Club(
       id: id,
       name: json['name'] ?? '',
-      rating: (json['rating'] ?? 0.0).toDouble(),
+      rating: calculatedRating,
       category: json['category'] ?? '',
       location: json['location'] ?? '',
       latitude: (json['latitude'] ?? 0.0).toDouble(),
@@ -54,10 +68,7 @@ class Club {
       openUntil: json['openUntil'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
       description: json['description'] ?? '',
-      reviews: (json['reviews'] as List?)
-              ?.map((r) => Review.fromJson(r))
-              .toList() ??
-          [],
+      reviews: reviewsList,
     );
   }
 }

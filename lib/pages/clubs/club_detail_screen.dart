@@ -709,9 +709,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                       'text': textController.text.trim(),
                     };
 
-                    Get.back(); // Close bottom sheet
+                    Get.back();
                     
-                    // Show loading dialog using Get.dialog for safer context management
                     Get.dialog(
                       const Center(child: CircularProgressIndicator(color: AppTheme.primaryPurple)),
                       barrierDismissible: false,
@@ -720,7 +719,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                     try {
                       await MongoDBService.addReviewToClub(currentClub.id, reviewData);
                       
-                      if (Get.isDialogOpen ?? false) Get.back(); // Close loading dialog
+                      if (Get.isDialogOpen ?? false) Get.back(); 
                       
                       Get.snackbar('Success', 'Review added successfully',
                           snackPosition: SnackPosition.BOTTOM,
@@ -731,7 +730,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen> {
                         _loadClub();
                       }
                     } catch (e) {
-                      if (Get.isDialogOpen ?? false) Get.back(); // Close loading dialog
+                      if (Get.isDialogOpen ?? false) Get.back(); 
                       
                       Get.snackbar('Error', 'Failed to add review: $e',
                           snackPosition: SnackPosition.BOTTOM,
